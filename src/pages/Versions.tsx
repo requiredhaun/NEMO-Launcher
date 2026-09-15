@@ -14,18 +14,30 @@ export function Versions() {
   const [log, setLog] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
 
+  const [loaderTouched, setLoaderTouched] = useState(false)
+
+  // init выбора из инстанса — один раз на инстанс, выбор юзера не затираем
   useEffect(() => {
     if (!inst) return
-    setLoader(inst.loader === 'vanilla' ? 'fabric' : inst.loader);
+    if (!loaderTouched) setLoader(inst.loader === 'vanilla' ? 'fabric' : inst.loader)
+    setPicked('')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inst?.id])
+
+  useEffect(() => {
+    if (!inst) return
+    let alive = true;
     (async () => {
       try {
-        if (loader === 'fabric') setOptions((await call<any[]>('versions:fabricLoaders')).map((l) => l.version).slice(0, 10))
-        else if (loader === 'quilt') setOptions(await call<string[]>('versions:quiltLoaders', { mc: inst.mcVersion }))
-        else if (loader === 'forge') setOptions(Object.values(await call<any>('versions:forgePromos')).filter(Boolean).slice(0, 10) as string[])
-        else if (loader === 'neoforge') setOptions(await call<string[]>('versions:neoforge', { mc: inst.mcVersion }))
-        else setOptions([])
-      } catch { setOptions([]) }
+        let opts: string[] = []
+        if (loader === 'fabric') opts = (await call<any[]>('versions:fabricLoaders')).map((l) => l.version).slice(0, 10)
+        else if (loader === 'quilt') opts = await call<string[]>('versions:quiltLoaders', { mc: inst.mcVersion })
+        else if (loader === 'forge') opts = (Object.values(await call<any>('versions:forgePromos')).filter(Boolean) as string[]).slice(0, 10)
+        else if (loader === 'neoforge') opts = await call<string[]>('versions:neoforge', { mc: inst.mcVersion })
+        if (alive) setOptions(opts)
+      } catch { if (alive) setOptions([]) }
     })()
+    return () => { alive = false }
   }, [loader, inst?.mcVersion])
 
   useEffect(() => {
@@ -52,7 +64,7 @@ export function Versions() {
       <div className="card">
         <div className="row" style={{ flexWrap: 'wrap' }}>
           {LOADERS.map((l) => (
-            <button key={l} className="btn" style={loader === l ? { borderColor: 'var(--red)', color: '#ff6b6f' } : {}} onClick={() => setLoader(l)}>{l}</button>
+            <button key={l} className="btn" style={loader === l ? { borderColor: 'var(--red)', color: '#ff6b6f' } : {}} onClick={() => { setLoaderTouched(true); setLoader(l) }}>{l}</button>
           ))}
         </div>
         {loader !== 'vanilla' && (

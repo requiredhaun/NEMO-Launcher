@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=DotGothic16&display=swap');
+
 :root {
   --bg: #000000;
   --panel: #0a0a0a;
@@ -108,7 +110,9 @@ body {
 
 .grid { display: grid; gap: 14px; }
 .grid.mods { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
-.mod-card { composes: card; cursor: default; transition: transform .2s, border-color .2s; }
+.mod-card {
+  cursor: default; transition: transform .2s, border-color .2s;
+}
 .mod-card:hover { transform: translateY(-3px); border-color: #3a3a3a; }
 
 .progress { height: 8px; background: #161616; border-radius: 99px; overflow: hidden; border: 1px solid var(--line); }

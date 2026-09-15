@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { HashRouter, Routes, Route, NavLink } from 'react-router-dom'
+import { HashRouter, Routes, Route, NavLink, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import './styles/app.css'
 import { DotBackground } from './components/DotBackground'
@@ -19,12 +19,34 @@ const NAV = [
   ['/mods', 'MODS'], ['/packs', 'MODPACKS'], ['/login', 'ACCOUNT'], ['/settings', 'SETTINGS'],
 ]
 
+function AnimatedRoutes() {
+  const loc = useLocation()
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div key={loc.pathname} initial={{ opacity: 0, x: 18 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.22 }}>
+        <Routes location={loc}>
+          <Route path="/" element={<Home />} />
+          <Route path="/instances" element={<Instances />} />
+          <Route path="/versions" element={<Versions />} />
+          <Route path="/mods" element={<Mods />} />
+          <Route path="/packs" element={<Modpacks />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/settings" element={<Settings />} />
+        </Routes>
+      </motion.div>
+    </AnimatePresence>
+  )
+}
+
 export function App() {
   const { refresh } = useAuth()
   const [boot, setBoot] = useState(true)
   useEffect(() => {
     bindGameEvents()
-    refresh().finally(() => setTimeout(() => setBoot(false), 900))
+    let alive = true
+    refresh().finally(() => { if (alive) setTimeout(() => alive && setBoot(false), 900) })
+    return () => { alive = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (
@@ -51,19 +73,7 @@ export function App() {
               <div style={{ marginTop: 'auto' }} className="badge">NOTHING-STYLE ● DOT 14px</div>
             </aside>
             <main className="main">
-              <AnimatePresence mode="wait">
-                <motion.div key={location.hash} initial={{ opacity: 0, x: 18 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.22 }}>
-                  <Routes>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/instances" element={<Instances />} />
-                    <Route path="/versions" element={<Versions />} />
-                    <Route path="/mods" element={<Mods />} />
-                    <Route path="/packs" element={<Modpacks />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/settings" element={<Settings />} />
-                  </Routes>
-                </motion.div>
-              </AnimatePresence>
+              <AnimatedRoutes />
             </main>
           </div>
         )}

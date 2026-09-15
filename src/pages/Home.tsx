@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { call } from '../lib/ipc'
 import { useInstances, selectedInstance } from '../store/instancesStore'
 import { useGame } from '../store/gameStore'
 import { useAuth } from '../store/authStore'

@@ -18,7 +18,10 @@ export const useGame = create<GameState>((set) => ({
   },
 }))
 
+let bound = false
 export function bindGameEvents() {
+  if (bound) return
+  bound = true
   window.nema.on('launch:status', (d: any) => {
     useGame.setState({ status: d.status, phase: d.phase, launching: d.phase === 'download' || d.phase === 'run' ? useGame.getState().launching : false })
     if (d.phase === 'error') useGame.setState({ launching: false })
