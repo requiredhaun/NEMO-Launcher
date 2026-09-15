@@ -9,7 +9,7 @@ import { GlyphLoader } from '../components/GlyphLoader'
 
 export function Home() {
   const { instances, selectedId, refresh } = useInstances()
-  const { status, progress, launching, playing, launch } = useGame()
+  const { status, progress, launching, playing, launch, cancel } = useGame()
   const { nick } = useAuth()
   const [err, setErr] = useState('')
   const inst = selectedInstance(instances, selectedId)
@@ -58,6 +58,11 @@ export function Home() {
               <motion.button className="btn play" whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }} onClick={play} disabled={launching || playing}>
                 {launching ? 'Запускаю…' : playing ? 'Уже в игре' : '▶  Играть'}
               </motion.button>
+              {launching && !playing && (
+                <motion.button className="btn ghost" whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={() => cancel()}>
+                  ✕ Отмена
+                </motion.button>
+              )}
               <div className="row">
                 <button className="btn ghost" onClick={() => call('launch:openGameFolder', { instanceId: inst.id })}>Папка</button>
                 <Link to="/versions" className="btn ghost" style={{ textDecoration: 'none' }}>Версия</Link>

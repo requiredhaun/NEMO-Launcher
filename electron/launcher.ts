@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { execFile } from 'node:child_process'
 import { app } from 'electron'
 import { Client, Authenticator } from 'minecraft-launcher-core'
 import { dashed } from './auth'
@@ -60,9 +61,78 @@ export interface LaunchOptions {
 let running = false
 export function isRunning(): boolean { return running }
 
+// MLC не умеет отмену и не отдаёт handle процесса — отменяем флагом:
+// после спавна добиваем java-процессы именно этой сборки (папка уникальна).
+let cancelRequested = false
+let currentDir = ''
+
+export function requestLaunchCancel(): void { cancelRequested = true }
+export function isLaunchCancelled(): boolean { return cancelRequested }
+export function currentGameDir(): string { return currentDir }
+
+function cancelledError(): any {
+  const e: any = new Error('Запуск отменён')
+  e.cancelled = true
+  return e
+}
+
+/** Выбрать из процессов pid тех java, в командной строке которых есть gameDir. Чистая функция для тестов. */
+export function findGamePids(procs: { pid: number; cmd: string }[], gameDir: string): number[] {
+  const needle = gameDir.toLowerCase()
+  return procs
+    .filter((p) => p.pid > 0 && p.cmd && p.cmd.toLowerCase().includes(needle))
+    .map((p) => p.pid)
+}
+
+export async function killGameProcesses(gameDir: string): Promise<number> {
+  try {
+    if (process.platform === 'win32') {
+      const out: string = await new Promise((res) => {
+        execFile(
+          'powershell',
+          ['-NoProfile', '-Command', `Get-CimInstance Win32_Process -Filter "Name='java.exe' OR Name='javaw.exe'" | ForEach-Object { "$($_.ProcessId)|$($_.CommandLine)" }`],
+          { windowsHide: true, timeout: 15000 },
+          (_e, stdout) => res(String(stdout || '')),
+        )
+      })
+      const procs = out.split(/\r?\n/).map((l) => {
+        const m = l.match(/^\s*(\d+)\|(.*)$/)
+        return m ? { pid: Number(m[1]), cmd: m[2] } : null
+      }).filter(Boolean) as { pid: number; cmd: string }[]
+      let n = 0
+      for (const pid of findGamePids(procs, gameDir)) {
+        try { process.kill(pid); n++ } catch { /* уже мёртв */ }
+      }
+      return n
+    }
+    const { execFileSync } = await import('node:child_process')
+    try {
+      const out = String(execFileSync('ps', ['-eo', 'pid,args']))
+      const procs = out.split('\n').map((l) => {
+        const m = l.trim().match(/^(\d+)\s+(.*)$/)
+        return m ? { pid: Number(m[1]), cmd: m[2] } : null
+      }).filter(Boolean) as { pid: number; cmd: string }[]
+      let n = 0
+      for (const pid of findGamePids(procs.filter((p) => /java/.test(p.cmd)), gameDir)) {
+        try { process.kill(pid, 'SIGKILL'); n++ } catch { /* ignore */ }
+      }
+      return n
+    } catch { return 0 }
+  } catch {
+    return 0
+  }
+}
+
 export async function launchGame(opts: LaunchOptions, emit: (c: string, d: unknown) => void): Promise<void> {
   if (running) throw new Error('Игра уже запущена')
   running = true
+  currentDir = opts.gameDir
+  if (cancelRequested) {
+    cancelRequested = false
+    running = false
+    currentDir = ''
+    throw cancelledError()
+  }
   try {
     const lc = new Client()
     const authorization: any =
@@ -86,7 +156,7 @@ export async function launchGame(opts: LaunchOptions, emit: (c: string, d: unkno
     lc.on('download-status', (v: any) => emit('launch:progress', { type: v?.type, name: v?.name, current: v?.current, total: v?.total }))
     lc.on('debug', (e: any) => { if (e) emit('game:log', { level: 'debug', line: String(e) }) })
     lc.on('data', (e: any) => { if (e) emit('game:log', { level: 'info', line: String(e) }) })
-    lc.on('close', (code: number) => { running = false; emit('game:closed', { code }) })
+    lc.on('close', (code: number) => { running = false; currentDir = ''; emit('game:closed', { code }) })
     const customArgs = buildCustomArgs(opts.flagsPreset, opts.customFlags)
     if (opts.auth.mode === 'ely') customArgs.unshift(...(await injectorArgs(opts.gameDir, emit)))
     await lc.launch({
@@ -98,8 +168,17 @@ export async function launchGame(opts: LaunchOptions, emit: (c: string, d: unkno
       customArgs,
       overrides: { detached: false } as any,
     })
+    if (cancelRequested) {
+      // отмена прилетела во время скачивания: процесс уже заспавнен — добиваем
+      cancelRequested = false
+      running = false
+      await killGameProcesses(opts.gameDir)
+      currentDir = ''
+      throw cancelledError()
+    }
   } catch (e) {
     running = false
+    currentDir = ''
     throw e
   }
 }

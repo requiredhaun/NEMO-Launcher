@@ -333,14 +333,30 @@ export function ensureLauncherProfile(gameDir: string): void {
   )
 }
 
+let installerProc: import('node:child_process').ChildProcess | null = null
+
+export function cancelInstaller(): void {
+  try { installerProc?.kill() } catch { /* ignore */ }
+  installerProc = null
+}
+
 export function runModdedInstaller(jar: string, gameDir: string, javaPath: string, onLog: (l: string) => void): Promise<void> {
   return new Promise((resolve, reject) => {
     const proc = spawn(javaPath, ['-jar', jar, '--installClient', gameDir], { cwd: gameDir, windowsHide: true })
+    installerProc = proc
     let err = ''
     proc.stdout.on('data', (d) => onLog(String(d)))
     proc.stderr.on('data', (d) => { err = String(d); onLog(String(d)) })
     proc.on('error', reject)
-    proc.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`Установщик завершился с кодом ${code}. ${err.slice(-300)}`))))
+    proc.on('close', (code) => {
+      installerProc = null
+      if (code === 0) resolve()
+      else if (code == null) {
+        const e: any = new Error('Установка отменена')
+        e.cancelled = true
+        reject(e)
+      } else reject(new Error(`Установщик завершился с кодом ${code}. ${err.slice(-300)}`))
+    })
   })
 }
 

@@ -7,7 +7,7 @@ import { call } from '../lib/ipc'
 
 export function Instances() {
   const { instances, selectedId, refresh, select, remove } = useInstances()
-  const { launching, playing, launch } = useGame()
+  const { launching, playing, launchingId, launch, cancel } = useGame()
 
   const [name, setName] = useState('')
   const [mc, setMc] = useState('1.21.11')
@@ -102,6 +102,7 @@ export function Instances() {
           <button className="btn play" style={{ padding: '11px 30px', fontSize: 14 }} disabled={creating} onClick={submit}>
             {creating ? 'Создаю…' : '+ Создать сборку'}
           </button>
+          {creating && <button className="btn ghost" onClick={() => call('install:cancel').catch(() => {})}>✕ Отмена</button>}
         </div>
         {creating && !!clog.length && <div className="log" style={{ marginTop: 12 }}>{clog.join('\n')}</div>}
         {err && <div style={{ color: 'var(--accent-soft)', marginTop: 8 }}>{err}</div>}
@@ -117,13 +118,17 @@ export function Instances() {
                   <div className="sub" style={{ margin: '4px 0 0' }}>{i.mcVersion} · {i.loader} {i.loaderVersion} · {i.versionId}</div>
                 </div>
                 <div className="row" style={{ flexWrap: 'wrap' }}>
-                  <button
-                    className="btn play" style={{ padding: '9px 22px', fontSize: 13 }}
-                    disabled={launching || playing}
-                    onClick={() => { setPlayErr(''); launch(i.id).catch((e: any) => setPlayErr(e.message)) }}
-                  >
-                    {playing && i.id === selectedId ? 'В игре' : '▶'}
-                  </button>
+                  {launching && !playing && launchingId === i.id ? (
+                    <button className="btn ghost" onClick={() => cancel()}>✕ Отмена</button>
+                  ) : (
+                    <button
+                      className="btn play" style={{ padding: '9px 22px', fontSize: 13 }}
+                      disabled={launching || playing}
+                      onClick={() => { setPlayErr(''); launch(i.id).catch((e: any) => setPlayErr(e.message)) }}
+                    >
+                      {playing && i.id === selectedId ? 'В игре' : '▶'}
+                    </button>
+                  )}
                   {i.id === selectedId ? <span className="badge red">ВЫБРАНА</span> : <button className="btn ghost" onClick={() => select(i.id)}>Выбрать</button>}
                   {armDel === i.id ? (
                     <>

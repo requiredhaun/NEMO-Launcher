@@ -26,7 +26,7 @@ function fmtSize(b: number): string {
 export function Mods() {
   const { instances, selectedId } = useInstances()
   const inst = selectedInstance(instances, selectedId)
-  const { launching, playing, launch, status, log } = useGame()
+  const { launching, playing, launch, cancel, status, log } = useGame()
 
   const [tab, setTab] = useState<Tab>('content')
 
@@ -154,10 +154,13 @@ export function Mods() {
           <div className="sub" style={{ margin: 0 }}>{inst.loader} {inst.mcVersion} · {mine.length} модов{offCount > 0 && ` · ${offCount} выкл.`}</div>
           {!!notice && <div className="sub" style={{ margin: '4px 0 0', color: notice.startsWith('Ошибка') || notice.startsWith('Не запустилось') ? 'var(--accent-soft)' : 'var(--txt)' }}>{notice}</div>}
         </div>
-        <div style={{ marginLeft: 'auto' }}>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 10, alignItems: 'center' }}>
           <motion.button className="btn play" style={{ padding: '12px 34px' }} whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }} onClick={play} disabled={launching || playing}>
             {launching ? 'Запускаю…' : playing ? 'В игре' : '▶ Играть'}
           </motion.button>
+          {launching && !playing && (
+            <button className="btn ghost" onClick={() => cancel()}>✕</button>
+          )}
         </div>
       </div>
 

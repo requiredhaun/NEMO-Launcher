@@ -18,6 +18,8 @@ import { searchProjects, projectVersions, pickVersion, downloadUrl, MOD_CATEGORI
 import { planDests, safeDest, writeFileChecked, pool } from './mrpack'
 import { listMods, toggleMod, deleteMod, addModFile, listWorlds } from './mods'
 import { rpcIdle, rpcLaunching, rpcPlaying, rpcClear } from './rpc'
+import { requestLaunchCancel, currentGameDir, killGameProcesses } from './launcher'
+import { cancelInstaller } from './versions'
 
 type Handler = (payload: any) => Promise<unknown> | unknown
 
@@ -255,10 +257,21 @@ const handlers: Record<string, Handler> = {
       fullscreen: cfg.fullscreenGame, gameWidth: cfg.gameWidth, gameHeight: cfg.gameHeight, auth,
       server: p?.server?.host ? { host: String(p.server.host), port: Number(p.server.port) || 25565 } : undefined,
     }, emit).then(() => { emit('launch:status', { phase: 'run', status: 'Игра запущена' }); rpcPlaying(inst.versionId, auth.name) })
-      .catch((e) => { emit('launch:status', { phase: 'error', status: `Ошибка: ${e?.message || e}` }); emit('game:closed', { code: 1 }) })
+      .catch((e) => {
+        if (e?.cancelled) emit('launch:status', { phase: 'idle', status: 'Запуск отменён' })
+        else emit('launch:status', { phase: 'error', status: `Ошибка: ${e?.message || e}` })
+        emit('game:closed', { code: 1 })
+      })
     return { started: true }
   },
   'launch:openGameFolder': (p) => { const i = resolveInstance(p); fs.mkdirSync(i.gameDir, { recursive: true }); shell.openPath(i.gameDir) },
+  'launch:cancel': async (p) => {
+    requestLaunchCancel()
+    const dir = currentGameDir() || resolveInstance(p).gameDir
+    const killed = await killGameProcesses(dir)
+    return { killed }
+  },
+  'install:cancel': () => { cancelInstaller(); return { ok: true } },
 
   'java:detect': () => detectJava(getConfig().javaPath),
   'java:pick': async () => {

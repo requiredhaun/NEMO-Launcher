@@ -8,15 +8,22 @@ interface GameState {
   log: string[]
   launching: boolean
   playing: boolean
+  launchingId: string
   launch: (instanceId: string) => Promise<void>
+  cancel: () => Promise<void>
 }
 
 export const useGame = create<GameState>((set) => ({
-  status: 'Готов', phase: 'idle', progress: 0, log: [], launching: false, playing: false,
+  status: 'Готов', phase: 'idle', progress: 0, log: [], launching: false, playing: false, launchingId: '',
   launch: async (instanceId) => {
     lastPhase = ''
-    set({ launching: true, playing: false, status: 'Запуск…', phase: 'download', progress: 0 })
+    set({ launching: true, playing: false, launchingId: instanceId, status: 'Запуск…', phase: 'download', progress: 0 })
     await call('launch:launch', { instanceId })
+  },
+  cancel: async () => {
+    lastPhase = ''
+    try { await call('launch:cancel', {}) } catch { /* ignore */ }
+    set({ launching: false, launchingId: '', status: 'Отменяю…', phase: 'download', progress: 0 })
   },
 }))
 
@@ -76,6 +83,6 @@ export function bindGameEvents() {
   })
   window.nema.on('game:closed', () => {
     lastPhase = ''
-    useGame.setState({ launching: false, playing: false, status: 'Готов', phase: 'idle', progress: 0 })
+    useGame.setState({ launching: false, playing: false, launchingId: '', status: 'Готов', phase: 'idle', progress: 0 })
   })
 }

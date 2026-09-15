@@ -36,8 +36,13 @@ export function Versions() {
       await call('versions:install', { instanceId: inst.id, loader, mc: inst.mcVersion, loaderVersion: picked, full: picked })
       await refresh()
       setLog((s) => [...s, 'Готово — версия установлена, можно играть'])
-    } catch (e: any) { setLog((s) => [...s, 'Ошибка: ' + e.message]) }
+    } catch (e: any) {
+      setLog((s) => [...s, String(e.message).includes('отмен') ? 'Установка отменена' : 'Ошибка: ' + e.message])
+    }
     finally { setBusy(false) }
+  }
+  const cancelInstall = async () => {
+    try { await call('install:cancel', {}) } catch { /* ignore */ }
   }
 
   if (!inst) return <div className="sub">Сначала создай сборку во вкладке «Библиотека»</div>
@@ -65,6 +70,7 @@ export function Versions() {
               {loaderVersions.map((o) => <option key={o} value={o}>{o}</option>)}
             </select>
             <button className="btn play" disabled={busy} onClick={install}>{busy ? 'Ставлю…' : 'Установить'}</button>
+            {busy && <button className="btn ghost" onClick={cancelInstall}>✕ Отмена</button>}
           </div>
         )}
         {loader === 'vanilla' && (
