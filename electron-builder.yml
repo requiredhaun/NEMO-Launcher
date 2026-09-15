@@ -1,0 +1,16 @@
+appId: com.nema.launcher
+productName: Nema Launcher
+directories:
+  output: release
+files:
+  - dist/**/*
+  - dist-electron/**/*
+  - package.json
+win:
+  target:
+    - nsis
+    - portable
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  shortcutName: Nema Launcher

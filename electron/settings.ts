@@ -1,0 +1,72 @@
+import { app } from 'electron'
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
+
+export interface ServerEntry { id: string; name: string; host: string; port: number }
+export type AuthMode = 'offline' | 'ely'
+
+export interface LauncherConfig {
+  nick: string
+  authMode: AuthMode
+  ramMB: number
+  javaPath: string
+  gameDir: string
+  version: string
+  flagsPreset: string
+  customFlags: string
+  fullscreenGame: boolean
+  gameWidth: number
+  gameHeight: number
+  servers: ServerEntry[]
+  windowBounds?: { x?: number; y?: number; width: number; height: number }
+  selectedInstanceId?: string
+}
+
+export function defaultGameDir(): string {
+  return path.join(app.getPath('userData'), 'minecraft')
+}
+
+function defaults(): LauncherConfig {
+  return {
+    nick: '',
+    authMode: 'offline',
+    ramMB: recommendedRamMB(),
+    javaPath: '',
+    gameDir: defaultGameDir(),
+    version: '',
+    flagsPreset: 'standard',
+    customFlags: '',
+    fullscreenGame: false,
+    gameWidth: 1280,
+    gameHeight: 720,
+    servers: [],
+  }
+}
+
+const file = () => path.join(app.getPath('userData'), 'config.json')
+
+export function getConfig(): LauncherConfig {
+  try {
+    const raw = fs.readFileSync(file(), 'utf-8')
+    return { ...defaults(), ...(JSON.parse(raw) as Partial<LauncherConfig>) }
+  } catch {
+    return defaults()
+  }
+}
+
+export function updateConfig(patch: Partial<LauncherConfig>): LauncherConfig {
+  const next = { ...getConfig(), ...patch }
+  fs.mkdirSync(path.dirname(file()), { recursive: true })
+  fs.writeFileSync(file(), JSON.stringify(next, null, 2), 'utf-8')
+  return next
+}
+
+export function totalRamMB(): number {
+  return Math.max(1024, Math.floor(os.totalmem() / 1024 / 1024))
+}
+
+export function recommendedRamMB(): number {
+  const total = totalRamMB()
+  return Math.min(8192, Math.max(2048, Math.floor(total / 2 / 512) * 512))
+}
