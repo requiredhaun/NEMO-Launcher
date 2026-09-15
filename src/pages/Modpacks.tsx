@@ -46,7 +46,7 @@ export function Modpacks() {
               </div>
             </div>
             <div className="sub">{h.description?.slice(0, 120)}</div>
-            <button className="btn play" style={{ padding: '10px 18px', fontSize: 13 }} disabled={busy === h.id} onClick={() => install(h.id)}>{busy === h.id ? 'Ставлю…' : '⤓ Установить'}</button>
+            <button className="btn play" style={{ padding: '10px 18px', fontSize: 13 }} disabled={busy === h.id} onClick={() => install(h.id)}>{busy === h.id ? 'Ставлю…' : '↓ Установить'}</button>
           </motion.div>
         ))}
       </div>

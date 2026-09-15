@@ -4,6 +4,7 @@ import { call } from '../lib/ipc'
 import { useInstances, selectedInstance } from '../store/instancesStore'
 import { useGame } from '../store/gameStore'
 import { catLabel } from '../lib/categories'
+import { TrashIcon, FolderIcon, GlobeIcon } from '../components/icons'
 
 type Tab = 'content' | 'catalog' | 'files' | 'worlds' | 'logs'
 type Filter = 'all' | 'on' | 'off'
@@ -135,7 +136,7 @@ export function Mods() {
         <div>
           <div className="row" style={{ flexWrap: 'wrap' }}>
             <input className="input" style={{ flex: 1, minWidth: 200 }} value={fq} onChange={(e) => setFq(e.target.value)} placeholder={`Искать среди ${mine.length}…`} />
-            <button className="btn play" style={{ padding: '10px 18px', fontSize: 13 }} onClick={() => setTab('catalog')}>⌖ Найти моды</button>
+            <button className="btn play" style={{ padding: '10px 18px', fontSize: 13 }} onClick={() => setTab('catalog')}>Найти моды</button>
             <button className="btn ghost" onClick={addFiles}>+ Добавить файлы</button>
           </div>
           <div className="row" style={{ marginTop: 12, flexWrap: 'wrap' }}>
@@ -158,7 +159,7 @@ export function Mods() {
                 <span className="mfile">{m.file}</span>
                 <span className="mactions">
                   <button className={'switch' + (m.enabled ? ' on' : '')} title={m.enabled ? 'Выключить' : 'Включить'} onClick={() => toggle(m.file)} />
-                  <button className="icon-btn" title="Удалить" onClick={() => remove(m.file)}>🗑</button>
+                  <button className="icon-btn danger" title="Удалить мод" onClick={() => remove(m.file)}><TrashIcon /></button>
                 </span>
               </div>
             ))}
@@ -228,7 +229,10 @@ export function Mods() {
             ['Корень сборки', '', 'всё остальное'],
           ].map(([t, rel, d]) => (
             <button key={t} className="card" style={{ cursor: 'pointer', textAlign: 'left', color: 'inherit' }} onClick={() => call('paths:open', { instanceId: inst.id, rel })}>
-              <div style={{ fontFamily: 'var(--font-dot)', letterSpacing: 2 }}>📁 {t}</div>
+              <div className="row" style={{ gap: 10 }}>
+                <FolderIcon size={20} />
+                <span style={{ fontFamily: 'var(--font-dot)', letterSpacing: 2 }}>{t}</span>
+              </div>
               <div className="sub" style={{ margin: '6px 0 0' }}>{d}</div>
             </button>
           ))}
@@ -240,7 +244,10 @@ export function Mods() {
           {worlds.map((w) => (
             <div key={w.name} className="card row" style={{ justifyContent: 'space-between' }}>
               <div>
-                <div style={{ fontWeight: 700 }}>🌍 {w.name}</div>
+                <div className="row" style={{ gap: 10 }}>
+                  <GlobeIcon size={20} />
+                  <span style={{ fontWeight: 700 }}>{w.name}</span>
+                </div>
                 <div className="sub" style={{ margin: 0 }}>{fmtSize(w.size)} · {new Date(w.mtime).toLocaleDateString('ru-RU')}</div>
               </div>
               <button className="btn ghost" onClick={() => call('paths:open', { instanceId: inst.id, rel: `saves/${w.name}` })}>Открыть</button>
