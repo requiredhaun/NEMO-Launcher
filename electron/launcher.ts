@@ -61,13 +61,16 @@ export interface LaunchOptions {
 let running = false
 export function isRunning(): boolean { return running }
 
-// MLC не умеет отмену и не отдаёт handle процесса — отменяем флагом:
-// после спавна добиваем java-процессы именно этой сборки (папка уникальна).
-let cancelRequested = false
+// MLC не умеет отмену и не отдаёт handle процесса. Работаем поколениями:
+// каждый запуск получает номер, отмена хоронит текущее поколение.
+// Новый запуск после отмены стартует сразу, а старый флоу, когда доползёт
+// до спавна, добивает ТОЛЬКО свой процесс (по времени старта) и тихо умирает.
+let flowSeq = 0
+let deadSeq = 0
 let currentDir = ''
 
-export function requestLaunchCancel(): void { cancelRequested = true }
-export function isLaunchCancelled(): boolean { return cancelRequested }
+export function requestLaunchCancel(): void { deadSeq = flowSeq }
+export function isLaunchCancelled(): boolean { return running && deadSeq >= flowSeq }
 export function currentGameDir(): string { return currentDir }
 
 function cancelledError(): any {
@@ -76,44 +79,52 @@ function cancelledError(): any {
   return e
 }
 
-/** Выбрать из процессов pid тех java, в командной строке которых есть gameDir. Чистая функция для тестов. */
-export function findGamePids(procs: { pid: number; cmd: string }[], gameDir: string): number[] {
+export interface ProcInfo { pid: number; cmd: string; startedMs?: number }
+
+/** Выбрать pid тех java, в командной строке которых есть gameDir (и стартовали не раньше sinceMs). Чистая функция для тестов. */
+export function findGamePids(procs: ProcInfo[], gameDir: string, sinceMs = 0): number[] {
   const needle = gameDir.toLowerCase()
   return procs
-    .filter((p) => p.pid > 0 && p.cmd && p.cmd.toLowerCase().includes(needle))
+    .filter((p) => p.pid > 0 && p.cmd && p.cmd.toLowerCase().includes(needle) && (p.startedMs || 0) >= sinceMs)
     .map((p) => p.pid)
 }
 
-export async function killGameProcesses(gameDir: string): Promise<number> {
+function parseWinDate(s: string): number {
+  const m = s.match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/)
+  if (!m) return 0
+  return new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]).getTime()
+}
+
+export async function killGameProcesses(gameDir: string, sinceMs = 0): Promise<number> {
   try {
     if (process.platform === 'win32') {
       const out: string = await new Promise((res) => {
         execFile(
           'powershell',
-          ['-NoProfile', '-Command', `Get-CimInstance Win32_Process -Filter "Name='java.exe' OR Name='javaw.exe'" | ForEach-Object { "$($_.ProcessId)|$($_.CommandLine)" }`],
+          ['-NoProfile', '-Command', `Get-CimInstance Win32_Process -Filter "Name='java.exe' OR Name='javaw.exe'" | ForEach-Object { "$($_.ProcessId)|$($_.CreationDate)|$($_.CommandLine)" }`],
           { windowsHide: true, timeout: 15000 },
           (_e, stdout) => res(String(stdout || '')),
         )
       })
-      const procs = out.split(/\r?\n/).map((l) => {
-        const m = l.match(/^\s*(\d+)\|(.*)$/)
-        return m ? { pid: Number(m[1]), cmd: m[2] } : null
-      }).filter(Boolean) as { pid: number; cmd: string }[]
+      const procs: ProcInfo[] = out.split(/\r?\n/).map((l) => {
+        const m = l.match(/^\s*(\d+)\|([^|]*)\|(.*)$/)
+        return m ? { pid: Number(m[1]), startedMs: parseWinDate(m[2]), cmd: m[3] } : null
+      }).filter(Boolean) as ProcInfo[]
       let n = 0
-      for (const pid of findGamePids(procs, gameDir)) {
+      for (const pid of findGamePids(procs, gameDir, sinceMs)) {
         try { process.kill(pid); n++ } catch { /* уже мёртв */ }
       }
       return n
     }
     const { execFileSync } = await import('node:child_process')
     try {
-      const out = String(execFileSync('ps', ['-eo', 'pid,args']))
-      const procs = out.split('\n').map((l) => {
-        const m = l.trim().match(/^(\d+)\s+(.*)$/)
-        return m ? { pid: Number(m[1]), cmd: m[2] } : null
-      }).filter(Boolean) as { pid: number; cmd: string }[]
+      const out = String(execFileSync('ps', ['-eo', 'pid,lstart,args']))
+      const procs: ProcInfo[] = out.split('\n').map((l) => {
+        const m = l.trim().match(/^(\d+)\s+(\w{3}\s+\w{3}\s+\d+\s+\d+:\d+:\d+\s+\d+)\s+(.*)$/)
+        return m ? { pid: Number(m[1]), startedMs: Date.parse(m[2]), cmd: m[3] } : null
+      }).filter(Boolean) as ProcInfo[]
       let n = 0
-      for (const pid of findGamePids(procs.filter((p) => /java/.test(p.cmd)), gameDir)) {
+      for (const pid of findGamePids(procs.filter((p) => /java/.test(p.cmd)), gameDir, sinceMs)) {
         try { process.kill(pid, 'SIGKILL'); n++ } catch { /* ignore */ }
       }
       return n
@@ -124,14 +135,31 @@ export async function killGameProcesses(gameDir: string): Promise<number> {
 }
 
 export async function launchGame(opts: LaunchOptions, emit: (c: string, d: unknown) => void): Promise<void> {
-  if (running) throw new Error('Игра уже запущена')
+  // живое (не отменённое) поколение уже работает — второй запуск запрещён,
+  // но после отмены новый запуск разрешён сразу, не дожидаясь старого флоу
+  if (running && deadSeq < flowSeq) throw new Error('Игра уже запущена')
+  const seq = ++flowSeq
+  const alive = () => seq > deadSeq
   running = true
   currentDir = opts.gameDir
-  if (cancelRequested) {
-    cancelRequested = false
-    running = false
-    currentDir = ''
-    throw cancelledError()
+  // сторож: MLC висит молча при оборванном соединении — подсказываем, а не врём про прогресс
+  let lastEv = Date.now()
+  const ev = (c: string, d: unknown) => {
+    if (c === 'launch:progress') lastEv = Date.now()
+    emit(c, d)
+  }
+  const watchdog = setInterval(() => {
+    if (seq === flowSeq && running && Date.now() - lastEv > 90000) {
+      lastEv = Date.now()
+      emit('launch:status', { phase: 'download', status: 'Всё ещё качаю… если висит долго — проверь интернет или жми Отмена' })
+    }
+  }, 20000)
+  const done = () => {
+    clearInterval(watchdog)
+    if (seq === flowSeq) {
+      running = false
+      currentDir = ''
+    }
   }
   try {
     const lc = new Client()
@@ -152,11 +180,11 @@ export async function launchGame(opts: LaunchOptions, emit: (c: string, d: unkno
     if (!check.ok) throw new Error('Файл версии не читается, переустанови версию')
     if (check.repaired) emit('launch:status', { phase: 'download', status: 'Нашёл битый файл, качаю заново…' })
     emit('launch:status', { phase: 'download', status: 'Загрузка файлов игры…' })
-    lc.on('progress', (v: any) => emit('launch:progress', { type: v?.type, kind: v?.kind, task: v?.task, total: v?.total }))
-    lc.on('download-status', (v: any) => emit('launch:progress', { type: v?.type, name: v?.name, current: v?.current, total: v?.total }))
+    lc.on('progress', (v: any) => ev('launch:progress', { type: v?.type, kind: v?.kind, task: v?.task, total: v?.total }))
+    lc.on('download-status', (v: any) => ev('launch:progress', { type: v?.type, name: v?.name, current: v?.current, total: v?.total }))
     lc.on('debug', (e: any) => { if (e) emit('game:log', { level: 'debug', line: String(e) }) })
     lc.on('data', (e: any) => { if (e) emit('game:log', { level: 'info', line: String(e) }) })
-    lc.on('close', (code: number) => { running = false; currentDir = ''; emit('game:closed', { code }) })
+    lc.on('close', (code: number) => { if (seq === flowSeq) { running = false; currentDir = '' } emit('game:closed', { code }) })
     // MLC не читает arguments.jvm из json — модульные флаги Forge/NeoForge
     // (-p, --add-modules, --add-opens) подсовываем сами через customArgs
     let versionJson: any = null
@@ -167,7 +195,8 @@ export async function launchGame(opts: LaunchOptions, emit: (c: string, d: unkno
       ...(versionJson ? jvmArgsFromJson(versionJson, { gameDir: opts.gameDir, versionId: opts.versionId, sep: process.platform === 'win32' ? ';' : ':' }) : []),
       ...buildCustomArgs(opts.flagsPreset, opts.customFlags),
     ]
-    if (opts.auth.mode === 'ely') customArgs.unshift(...(await injectorArgs(opts.gameDir, emit)))
+    if (opts.auth.mode === 'ely') customArgs.unshift(...(await injectorArgs(opts.gameDir, ev)))
+    const spawnedAt = Date.now()
     await lc.launch({
       root: opts.gameDir,
       version: { number: opts.versionId, type: type || 'release' },
@@ -177,17 +206,16 @@ export async function launchGame(opts: LaunchOptions, emit: (c: string, d: unkno
       customArgs,
       overrides: { detached: false } as any,
     })
-    if (cancelRequested) {
-      // отмена прилетела во время скачивания: процесс уже заспавнен — добиваем
-      cancelRequested = false
-      running = false
-      await killGameProcesses(opts.gameDir)
-      currentDir = ''
+    if (!alive()) {
+      // поколение отменено пока качалось: добиваем ТОЛЬКО свой процесс
+      // (стартовавший после спавна) и тихо умираем — новый запуск уже идёт
+      done()
+      await killGameProcesses(opts.gameDir, spawnedAt - 5000)
       throw cancelledError()
     }
+    done()
   } catch (e) {
-    running = false
-    currentDir = ''
+    done()
     throw e
   }
 }

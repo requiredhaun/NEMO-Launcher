@@ -1,7 +1,7 @@
 {
   "name": "nemo",
   "productName": "NEMO",
-  "version": "0.1.19",
+  "version": "0.1.20",
   "description": "NEMO — Minecraft лаунчер: сборки, моды и модпаки с Modrinth",
   "author": "Nema",
   "private": true,

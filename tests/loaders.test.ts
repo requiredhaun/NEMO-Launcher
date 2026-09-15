@@ -39,9 +39,9 @@ describe('findGamePids', () => {
   const dir = 'C:\\Users\\k\\AppData\\nema-launcher\\instances\\abc123'
   it('matches only java whose cmdline contains the instance dir', () => {
     const procs = [
-      { pid: 11, cmd: `"C:\\Java\\bin\\java.exe" -Djava.library.path=${dir}\\natives --gameDir "${dir}"` },
-      { pid: 22, cmd: `"C:\\Java\\bin\\java.exe" -jar installer.jar --installClient C:\\other` },
-      { pid: 33, cmd: 'code.exe --unity-launch' },
+      { pid: 11, cmd: `"C:\\Java\\bin\\java.exe" -Djava.library.path=${dir}\\natives --gameDir "${dir}"`, startedMs: 1000 },
+      { pid: 22, cmd: `"C:\\Java\\bin\\java.exe" -jar installer.jar --installClient C:\\other`, startedMs: 1000 },
+      { pid: 33, cmd: 'code.exe --unity-launch', startedMs: 1000 },
     ]
     expect(findGamePids(procs, dir)).toEqual([11])
   })
@@ -52,5 +52,12 @@ describe('findGamePids', () => {
       { pid: 44, cmd: '' },
     ]
     expect(findGamePids(procs, dir)).toEqual([])
+  })
+  it('kills only processes started after sinceMs', () => {
+    const procs = [
+      { pid: 11, cmd: `java --gameDir "${dir}"`, startedMs: 1000 },
+      { pid: 22, cmd: `java --gameDir "${dir}"`, startedMs: 5000 },
+    ]
+    expect(findGamePids(procs, dir, 3000)).toEqual([22])
   })
 })
