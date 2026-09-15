@@ -45,23 +45,23 @@ async function set(activity: Record<string, unknown>): Promise<void> {
 
 /** Лаунчер открыт — «сидит в NEMO». */
 export function rpcIdle(): void {
-  void set({ details: 'Сидит в NEMO', state: 'Выбирает сборку', instance: false })
+  void set({ details: 'Сидит в NEMO', state: 'Выбирает сборку', largeImageKey: 'nemo', largeImageText: 'NEMO Launcher', instance: false })
 }
 
 /** Пошёл запуск сборки. */
 export function rpcLaunching(name: string): void {
-  void set({ details: `Запускает «${name}»`, state: 'Загрузка файлов игры…', instance: false })
+  void set({ details: `Запускает «${name}»`, state: 'Загрузка файлов игры…', largeImageKey: 'nemo', largeImageText: 'NEMO Launcher', instance: false })
 }
 
 /** Игра запущена — «Minecraft <версия> как <ник>» с таймером сессии. */
 export function rpcPlaying(versionId: string, nick: string): void {
-  void set({ details: `Minecraft ${versionId}`, state: `Играет как ${nick}`, startTimestamp: Date.now(), instance: false })
+  void set({ details: `Minecraft ${versionId}`, state: `Играет как ${nick}`, startTimestamp: Date.now(), largeImageKey: 'nemo', largeImageText: 'NEMO Launcher', instance: false })
 }
 
 /** Игра закрыта — назад в idle; если выключено — рвём соединение. */
 export async function rpcClear(): Promise<void> {
   if (rpcEnabled()) {
-    await set({ details: 'Сидит в NEMO', state: 'Выбирает сборку', instance: false })
+    await set({ details: 'Сидит в NEMO', state: 'Выбирает сборку', largeImageKey: 'nemo', largeImageText: 'NEMO Launcher', instance: false })
     return
   }
   const c = client

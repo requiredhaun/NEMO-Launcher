@@ -110,11 +110,16 @@ export function Settings() {
               <input
                 className="input" style={{ marginTop: 8 }} value={cfg.discordClientId || ''}
                 onChange={(e) => set({ discordClientId: e.target.value })}
-                placeholder="Application Client ID…"
+                placeholder="Application ID (только цифры)…"
               />
-              <button className="link" style={{ marginTop: 8 }} onClick={() => call('paths:openUrl', { url: 'https://discord.com/developers/applications' })}>
-                Где взять? Создай приложение на discord.com/developers
-              </button>
+              <div className="sub" style={{ margin: '10px 0 0', lineHeight: 1.7 }}>
+                Как получить ID:<br />
+                1. <button className="link" onClick={() => call('paths:openUrl', { url: 'https://discord.com/developers/applications' })}>Открой портал разработчиков</button> и нажми New Application<br />
+                2. Назови как хочешь (например NEMO), нажми Create<br />
+                3. Скопируй <b>Application ID</b> в самом верху страницы и вставь сюда<br />
+                4. Чтобы вместо «?» была иконка: General Information → App Icon → загрузи файл build/icon.png из папки лаунчера<br />
+                5. По желанию: Rich Presence → Art Assets → Add Image → загрузи ту же картинку с именем <b>nemo</b> — тогда будет большая обложка
+              </div>
             </>
           )}
         </div>
