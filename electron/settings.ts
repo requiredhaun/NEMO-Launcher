@@ -60,8 +60,9 @@ function defaults(): LauncherConfig {
     gameHeight: 720,
     servers: [],
     theme: defaultTheme(),
-    discordRpc: false,
-    discordClientId: '',
+    // Discord RPC включён из коробки: присутствие видно сразу после скачивания
+    discordRpc: true,
+    discordClientId: '1549482343906152498',
   }
 }
 

@@ -4,7 +4,7 @@ import { app } from 'electron'
 import { Client, Authenticator } from 'minecraft-launcher-core'
 import { dashed } from './auth'
 import { buildCustomArgs } from './flags'
-import { versionType } from './versions'
+import { versionType, mergeInherits, verifyClientJar } from './versions'
 
 const ELY_AUTH = 'https://authserver.ely.by'
 
@@ -71,6 +71,16 @@ export async function launchGame(opts: LaunchOptions, emit: (c: string, d: unkno
         : Authenticator.getAuth(opts.nick || 'Player')
     applyWindowOptions(opts.gameDir, opts.fullscreen, opts.gameWidth, opts.gameHeight)
     const type = await versionType(opts.gameDir, opts.versionId)
+    // forge/neoforge json с inheritsFrom чиним в плоский перед запуском
+    try {
+      await mergeInherits(opts.gameDir, opts.versionId)
+    } catch (e: any) {
+      throw new Error(`Файл версии битый, переустанови загрузчик: ${e?.message || e}`)
+    }
+    // оборванный jar навсегда ломал бы запуск — удаляем, MLC скачает заново
+    const check = verifyClientJar(opts.gameDir, opts.versionId)
+    if (!check.ok) throw new Error('Файл версии не читается, переустанови версию')
+    if (check.repaired) emit('launch:status', { phase: 'download', status: 'Нашёл битый файл, качаю заново…' })
     emit('launch:status', { phase: 'download', status: 'Загрузка файлов игры…' })
     lc.on('progress', (v: any) => emit('launch:progress', { type: v?.type, kind: v?.kind, task: v?.task, total: v?.total }))
     lc.on('download-status', (v: any) => emit('launch:progress', { type: v?.type, name: v?.name, current: v?.current, total: v?.total }))

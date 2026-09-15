@@ -9,7 +9,7 @@ import { elyEnsureValid, elyLogin, elyLogout, loadSession } from './auth'
 import {
   getManifest, installedVersions, fabricLoaders, installFabric, quiltLoaders, installQuilt,
   forgePromos, forgeFull, downloadForgeInstaller, downloadNeoForgeInstaller, neoforgeVersions,
-  matchInstalledVersion, loaderSupport, runModdedInstaller, detectJava, ensureLauncherProfile,
+  matchInstalledVersion, loaderSupport, runModdedInstaller, detectJava, ensureLauncherProfile, mergeInherits,
 } from './versions'
 import { launchGame } from './launcher'
 import { FLAG_PRESETS } from './flags'
@@ -190,6 +190,7 @@ const handlers: Record<string, Handler> = {
       const all = Array.from(installedVersions(inst.gameDir))
       versionId = matchInstalledVersion(all, mc, full) || mc
       if (versionId === mc) send('Установщик отработал, но версия не опознана — проверь список вручную')
+      else await mergeInherits(inst.gameDir, versionId)
     } else if (loader === 'neoforge') {
       const vers = await neoforgeVersions(mc)
       const v = String(p?.full || '') || vers[0]
@@ -201,6 +202,7 @@ const handlers: Record<string, Handler> = {
       await runModdedInstaller(jar, inst.gameDir, javaPath, send)
       const all = Array.from(installedVersions(inst.gameDir))
       versionId = matchInstalledVersion(all, mc, v) || mc
+      if (versionId !== mc) await mergeInherits(inst.gameDir, versionId)
     }
     const next: Instance = { ...inst, mcVersion: mc, loader: loader as any, loaderVersion: String(p?.loaderVersion || p?.full || ''), versionId }
     if (inst.id !== 'legacy') writeInstance(next)

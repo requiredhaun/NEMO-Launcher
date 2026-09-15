@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import crypto from 'node:crypto'
 import path from 'node:path'
 import { spawn } from 'node:child_process'
 import { app } from 'electron'
@@ -76,6 +77,7 @@ function mavenArtifact(name: string): string {
 
 function toMojangLib(lib: any): any {
   if (lib.downloads?.artifact?.url) return lib
+  if (!lib.url || !lib.name) return lib // странная запись — оставляем как есть, не роняем мерж
   const p = mavenArtifact(lib.name)
   return { name: lib.name, downloads: { artifact: { path: p, url: `${String(lib.url).replace(/\/$/, '')}/${p}` } } }
 }
@@ -96,6 +98,58 @@ function saveVersion(gameDir: string, id: string, json: any): void {
   const dir = path.join(gameDir, 'versions', id)
   fs.mkdirSync(dir, { recursive: true })
   fs.writeFileSync(path.join(dir, `${id}.json`), JSON.stringify(json, null, 2), 'utf-8')
+}
+
+/**
+ * Установщики Forge/NeoForge пишут json с inheritsFrom и БЕЗ downloads —
+ * MLC такое не запускает (падает на downloads.client.url).
+ * Сливаем цепочку наследования в плоский запускаемый json, как ванильный
+ * лаунчер. Идемпотентно: повторный вызов ничего не меняет.
+ */
+export async function mergeInherits(gameDir: string, id: string): Promise<void> {
+  const file = path.join(gameDir, 'versions', id, `${id}.json`)
+  const json = JSON.parse(fs.readFileSync(file, 'utf-8'))
+  if (!json?.inheritsFrom) return
+  const parent = await getVanillaVersionJson(json.inheritsFrom, gameDir)
+  const merged = mergeProfile(parent, json)
+  merged.id = id
+  saveVersion(gameDir, id, merged)
+}
+
+/**
+ * MLC пропускает докачку jar, если файл просто существует, — оборванный
+ * jar (622КБ вместо 26МБ) навсегда ломает запуск с ClassNotFound.
+ * Проверяем размер/sha1 из version.json; битый удаляем чтобы MLC скачал заново.
+ */
+export function verifyClientJar(gameDir: string, versionId: string): { ok: boolean; repaired: boolean } {
+  const dir = path.join(gameDir, 'versions', versionId)
+  let json: any
+  try {
+    json = JSON.parse(fs.readFileSync(path.join(dir, `${versionId}.json`), 'utf-8'))
+  } catch {
+    return { ok: false, repaired: false }
+  }
+  const dl = json?.downloads?.client
+  const jar = path.join(dir, `${versionId}.jar`)
+  if (!fs.existsSync(jar)) return { ok: !!dl, repaired: false }
+  if (!dl) return { ok: true, repaired: false }
+  try {
+    const st = fs.statSync(jar)
+    if (dl.size && st.size !== dl.size) {
+      fs.unlinkSync(jar)
+      return { ok: true, repaired: true }
+    }
+    if (dl.sha1) {
+      const sum = crypto.createHash('sha1').update(fs.readFileSync(jar)).digest('hex')
+      if (sum !== String(dl.sha1).toLowerCase()) {
+        fs.unlinkSync(jar)
+        return { ok: true, repaired: true }
+      }
+    }
+  } catch {
+    return { ok: false, repaired: false }
+  }
+  return { ok: true, repaired: false }
 }
 
 export async function fabricLoaders(): Promise<{ version: string; stable: boolean }[]> {
