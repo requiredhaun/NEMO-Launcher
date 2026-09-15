@@ -9,7 +9,7 @@ import { elyEnsureValid, elyLogin, elyLogout, loadSession } from './auth'
 import {
   getManifest, installedVersions, fabricLoaders, installFabric, quiltLoaders, installQuilt,
   forgePromos, forgeFull, downloadForgeInstaller, downloadNeoForgeInstaller, neoforgeVersions,
-  matchInstalledVersion, loaderSupport, runModdedInstaller, detectJava,
+  matchInstalledVersion, loaderSupport, runModdedInstaller, detectJava, ensureLauncherProfile,
 } from './versions'
 import { launchGame } from './launcher'
 import { FLAG_PRESETS } from './flags'
@@ -184,6 +184,7 @@ const handlers: Record<string, Handler> = {
       send(`Скачиваю Forge ${full}…`)
       const jar = await downloadForgeInstaller(full)
       const javaPath = await installerJava(inst.gameDir, mc, send)
+      ensureLauncherProfile(inst.gameDir)
       await runModdedInstaller(jar, inst.gameDir, javaPath, send)
       const all = Array.from(installedVersions(inst.gameDir))
       versionId = matchInstalledVersion(all, mc, full) || mc
@@ -195,6 +196,7 @@ const handlers: Record<string, Handler> = {
       send(`Скачиваю NeoForge ${v}…`)
       const jar = await downloadNeoForgeInstaller(v)
       const javaPath = await installerJava(inst.gameDir, mc, send)
+      ensureLauncherProfile(inst.gameDir)
       await runModdedInstaller(jar, inst.gameDir, javaPath, send)
       const all = Array.from(installedVersions(inst.gameDir))
       versionId = matchInstalledVersion(all, mc, v) || mc

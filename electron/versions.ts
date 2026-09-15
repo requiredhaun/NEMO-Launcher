@@ -195,8 +195,11 @@ export function matchInstalledVersion(dirs: string[], mc: string, full: string):
   const cands = dirs.filter((d) => d !== mc)
   const build = full.includes('-') ? full.split('-').slice(1).join('-') : full
   if (build) {
+    // NeoForge кладёт "neoforge-21.1.250" (без mc), Forge — "1.20.1-forge-47.2.0"
     const exact = cands.find((d) => d.includes(mc) && d.includes(build))
     if (exact) return exact
+    const byBuild = cands.find((d) => d.includes(build))
+    if (byBuild) return byBuild
   }
   return cands.find((d) => d.includes(mc) && /forge|neoforge|fabric|quilt/i.test(d)) || null
 }
@@ -242,6 +245,38 @@ async function downloadInstaller(url: string, name: string): Promise<string> {
   if (!res.ok) throw new Error(`Скачивание установщика: ${res.status}`)
   fs.writeFileSync(file, Buffer.from(await res.arrayBuffer()))
   return file
+}
+
+/**
+ * Установщики Forge/NeoForge отказываются работать в пустой папке:
+ * "There is no minecraft launcher profile ... run the launcher first!"
+ * Создаём минимальный launcher_profiles.json, как делает Theseus.
+ * Существующий файл никогда не трогаем.
+ */
+export function ensureLauncherProfile(gameDir: string): void {
+  const file = path.join(gameDir, 'launcher_profiles.json')
+  if (fs.existsSync(file)) return
+  fs.mkdirSync(gameDir, { recursive: true })
+  fs.writeFileSync(
+    file,
+    JSON.stringify(
+      {
+        profiles: {},
+        settings: {
+          enableSnapshots: false,
+          enableAdvanced: false,
+          keepLauncherOpen: false,
+          showGameLog: false,
+          showMenu: false,
+          soundOn: false,
+        },
+        version: 3,
+      },
+      null,
+      2,
+    ),
+    'utf-8',
+  )
 }
 
 export function runModdedInstaller(jar: string, gameDir: string, javaPath: string, onLog: (l: string) => void): Promise<void> {

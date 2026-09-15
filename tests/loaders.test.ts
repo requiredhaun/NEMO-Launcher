@@ -25,6 +25,10 @@ describe('matchInstalledVersion', () => {
     const dirs = ['1.20.1-forge-47.2.0', '1.20.1-forge-47.4.0']
     expect(matchInstalledVersion(dirs, '1.20.1', '1.20.1-47.4.0')).toBe('1.20.1-forge-47.4.0')
   })
+  it('finds neoforge dir without mc prefix', () => {
+    const dirs = ['1.21.1', 'neoforge-21.1.250']
+    expect(matchInstalledVersion(dirs, '1.21.1', '21.1.250')).toBe('neoforge-21.1.250')
+  })
   it('returns null when nothing matches', () => {
     expect(matchInstalledVersion(['1.21.1'], '1.21.1', '21.1.250')).toBeNull()
   })
