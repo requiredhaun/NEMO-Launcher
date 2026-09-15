@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { call } from '../lib/ipc'
 import { useInstances, selectedInstance } from '../store/instancesStore'
@@ -34,6 +34,8 @@ export function Mods() {
   const [fq, setFq] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
   const [asc, setAsc] = useState(true)
+  const [dragOver, setDragOver] = useState(false)
+  const dragDepth = useRef(0)
 
   // --- каталог ---
   const [q, setQ] = useState('')
@@ -102,8 +104,24 @@ export function Mods() {
   }
   const addFiles = async () => {
     if (!inst) return
-    await call('mods:addFiles', { instanceId: inst.id })
-    await refreshMine()
+    const r = await call<any>('mods:addFiles', { instanceId: inst.id })
+    if (r.added?.length) await refreshMine()
+  }
+  const [dropMsg, setDropMsg] = useState('')
+  const onDropFiles = async (e: React.DragEvent) => {
+    e.preventDefault()
+    dragDepth.current = 0
+    setDragOver(false)
+    if (!inst || !e.dataTransfer.files.length) return
+    const paths = Array.from(e.dataTransfer.files)
+      .map((f: any) => f.path)
+      .filter((p) => typeof p === 'string' && p.toLowerCase().endsWith('.jar'))
+    if (!paths.length) { setDropMsg('Нужны .jar файлы модов'); return }
+    try {
+      const r = await call<any>('mods:addFilesByPath', { instanceId: inst.id, paths })
+      await refreshMine()
+      setDropMsg(`Добавлено: ${r.added.length}`)
+    } catch (err: any) { setDropMsg(err.message) }
   }
   const install = async (id: string) => {
     if (!inst) return
@@ -143,11 +161,20 @@ export function Mods() {
       </div>
 
       {tab === 'content' && (
-        <div>
+        <div
+          onDragEnter={(e) => { e.preventDefault(); dragDepth.current++; setDragOver(true) }}
+          onDragLeave={(e) => { e.preventDefault(); if (--dragDepth.current <= 0) { dragDepth.current = 0; setDragOver(false) } }}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={onDropFiles}
+        >
           <div className="row" style={{ flexWrap: 'wrap' }}>
             <input className="input" style={{ flex: 1, minWidth: 200 }} value={fq} onChange={(e) => setFq(e.target.value)} placeholder={`Искать среди ${mine.length}…`} />
             <button className="btn play" style={{ padding: '10px 18px', fontSize: 13 }} onClick={() => setTab('catalog')}>Найти моды</button>
             <button className="btn ghost" onClick={addFiles}>+ Добавить файлы</button>
+          </div>
+          <div className={'dropzone' + (dragOver ? ' over' : '')}>
+            {dragOver ? 'Отпускай — ставлю моды' : '…или перетащи .jar файлы сюда'}
+            {dropMsg && <div style={{ marginTop: 4, color: 'var(--txt)' }}>{dropMsg}</div>}
           </div>
           <div className="row" style={{ marginTop: 12, flexWrap: 'wrap' }}>
             {([['all', 'Все'], ['on', 'Включённые'], ['off', 'Отключённые']] as [Filter, string][]).map(([v, l]) => (
@@ -173,7 +200,7 @@ export function Mods() {
                 </span>
               </div>
             ))}
-            {!visible.length && <div className="sub" style={{ padding: 16 }}>{mine.length ? 'Под фильтр ничего не попало' : 'Модов пока нет — нажми «Найти моды» или добавь .jar файлы'}</div>}
+            {!visible.length && <div className="sub" style={{ padding: 16 }}>{mine.length ? 'Под фильтр ничего не попало' : 'Модов пока нет — нажми «Найти моды» или перетащи .jar сюда'}</div>}
           </div>
         </div>
       )}

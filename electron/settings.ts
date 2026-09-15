@@ -6,6 +6,17 @@ import path from 'node:path'
 export interface ServerEntry { id: string; name: string; host: string; port: number }
 export type AuthMode = 'offline' | 'ely'
 
+export type Accent = 'red' | 'green' | 'purple' | 'blue' | 'orange' | 'white'
+
+export interface ThemeConfig {
+  accent: Accent
+  dots: boolean
+  glow: boolean
+  animations: boolean
+  dotFont: boolean
+  compact: boolean
+}
+
 export interface LauncherConfig {
   nick: string
   authMode: AuthMode
@@ -19,12 +30,17 @@ export interface LauncherConfig {
   gameWidth: number
   gameHeight: number
   servers: ServerEntry[]
+  theme: ThemeConfig
   windowBounds?: { x?: number; y?: number; width: number; height: number }
   selectedInstanceId?: string
 }
 
 export function defaultGameDir(): string {
   return path.join(app.getPath('userData'), 'minecraft')
+}
+
+export function defaultTheme(): ThemeConfig {
+  return { accent: 'red', dots: true, glow: true, animations: true, dotFont: true, compact: false }
 }
 
 function defaults(): LauncherConfig {
@@ -41,6 +57,7 @@ function defaults(): LauncherConfig {
     gameWidth: 1280,
     gameHeight: 720,
     servers: [],
+    theme: defaultTheme(),
   }
 }
 
@@ -49,14 +66,16 @@ const file = () => path.join(app.getPath('userData'), 'config.json')
 export function getConfig(): LauncherConfig {
   try {
     const raw = fs.readFileSync(file(), 'utf-8')
-    return { ...defaults(), ...(JSON.parse(raw) as Partial<LauncherConfig>) }
+    const parsed = JSON.parse(raw) as Partial<LauncherConfig>
+    return { ...defaults(), ...parsed, theme: { ...defaultTheme(), ...(parsed.theme || {}) } }
   } catch {
     return defaults()
   }
 }
 
 export function updateConfig(patch: Partial<LauncherConfig>): LauncherConfig {
-  const next = { ...getConfig(), ...patch }
+  const cur = getConfig()
+  const next = { ...cur, ...patch, theme: { ...cur.theme, ...(patch.theme || {}) } }
   fs.mkdirSync(path.dirname(file()), { recursive: true })
   fs.writeFileSync(file(), JSON.stringify(next, null, 2), 'utf-8')
   return next

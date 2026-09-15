@@ -51,7 +51,7 @@ export function Home() {
                   <div className="progress"><div style={{ width: `${Math.round(progress * 100)}%` }} /></div>
                 </div>
               )}
-              {err && <div style={{ color: '#ff6b6f', marginTop: 8 }}>{err}</div>}
+              {err && <div style={{ color: 'var(--accent-soft)', marginTop: 8 }}>{err}</div>}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'stretch' }}>
               <motion.button className="btn play" whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }} onClick={play} disabled={launching || playing}>

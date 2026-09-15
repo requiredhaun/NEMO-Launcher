@@ -82,7 +82,7 @@ export function Instances() {
           {!loadersLoading && loaders.map((l) => (
             <button
               key={l.id} className="btn" title={l.hint} disabled={!l.supported}
-              style={loader === l.id ? { borderColor: 'var(--red)', color: '#ff6b6f' } : l.supported ? {} : { opacity: 0.4 }}
+              style={loader === l.id ? { borderColor: 'var(--red)', color: 'var(--accent-soft)' } : l.supported ? {} : { opacity: 0.4 }}
               onClick={() => setLoader(l.id)}
             >
               {l.label}
@@ -104,7 +104,7 @@ export function Instances() {
           </button>
         </div>
         {creating && !!clog.length && <div className="log" style={{ marginTop: 12 }}>{clog.join('\n')}</div>}
-        {err && <div style={{ color: '#ff6b6f', marginTop: 8 }}>{err}</div>}
+        {err && <div style={{ color: 'var(--accent-soft)', marginTop: 8 }}>{err}</div>}
       </div>
       <div className="grid" style={{ marginTop: 14 }}>
         <AnimatePresence>
@@ -127,7 +127,7 @@ export function Instances() {
                   {i.id === selectedId ? <span className="badge red">ВЫБРАНА</span> : <button className="btn ghost" onClick={() => select(i.id)}>Выбрать</button>}
                   {armDel === i.id ? (
                     <>
-                      <button className="btn" style={{ borderColor: 'var(--red)', color: '#ff6b6f' }} onClick={() => { remove(i.id); setArmDel('') }}>Точно удалить?</button>
+                      <button className="btn" style={{ borderColor: 'var(--red)', color: 'var(--accent-soft)' }} onClick={() => { remove(i.id); setArmDel('') }}>Точно удалить?</button>
                       <button className="btn ghost" onClick={() => setArmDel('')}>Нет</button>
                     </>
                   ) : (
@@ -139,7 +139,7 @@ export function Instances() {
           ))}
         </AnimatePresence>
         {!instances.length && <div className="sub">Пока пусто — создай первую сборку выше</div>}
-        {playErr && <div style={{ color: '#ff6b6f' }}>{playErr}</div>}
+        {playErr && <div style={{ color: 'var(--accent-soft)' }}>{playErr}</div>}
       </div>
     </div>
   )

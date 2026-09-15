@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { call } from '../lib/ipc'
+import { ACCENTS, applyTheme, type Theme } from '../lib/theme'
 
 export function Settings() {
   const [cfg, setCfg] = useState<any>(null)
@@ -7,14 +8,22 @@ export function Settings() {
   const [presets, setPresets] = useState<any>({})
 
   const load = async () => {
-    setCfg(await call('config:get'))
+    const c = await call<any>('config:get')
+    setCfg(c)
+    if (c?.theme) applyTheme(c.theme)
     setInfo(await call('system:info'))
     setPresets(await call('config:flagPresets'))
   }
   useEffect(() => { load() }, [])
 
-  const set = async (patch: any) => { setCfg(await call('config:set', patch)) }
+  const set = async (patch: any) => {
+    const c = await call<any>('config:set', patch)
+    setCfg(c)
+    if (c?.theme) applyTheme(c.theme)
+  }
+  const setTheme = (patch: Partial<Theme>) => set({ theme: { ...theme, ...patch } })
   if (!cfg) return <div className="sub">…</div>
+  const theme: Theme = { accent: 'red', dots: true, glow: true, animations: true, dotFont: true, compact: false, ...(cfg.theme || {}) }
 
   return (
     <div>
@@ -24,7 +33,7 @@ export function Settings() {
         <div className="card">
           <div style={{ fontFamily: 'var(--font-dot)', letterSpacing: 2 }}>ПАМЯТЬ ПО УМОЛЧАНИЮ — {cfg.ramMB} МБ</div>
           <input type="range" min={1024} max={Math.min(16384, info?.totalRamMB || 8192)} step={256} value={cfg.ramMB}
-            onChange={(e) => set({ ramMB: Number(e.target.value) })} style={{ width: '100%', marginTop: 12, accentColor: '#d71920' }} />
+            onChange={(e) => set({ ramMB: Number(e.target.value) })} style={{ width: '100%', marginTop: 12, accentColor: 'var(--red)' }} />
           {cfg.ramMB > (info?.totalRamMB || 8192) * 0.7 && <div style={{ color: '#ffb020' }}>⚠ больше 70% ОЗУ системы</div>}
         </div>
         <div className="card">
@@ -51,6 +60,37 @@ export function Settings() {
             <button className="btn ghost" onClick={() => call('launch:openGameFolder', {})}>Папка игры</button>
             <button className="btn ghost" onClick={() => call('gamedir:reset').then(load)}>Сбросить путь</button>
           </div>
+        </div>
+        <div className="card">
+          <div style={{ fontFamily: 'var(--font-dot)', letterSpacing: 2 }}>ДИЗАЙН ЛАУНЧЕРА</div>
+          <div className="sub" style={{ margin: '6px 0 0' }}>Акцентный цвет</div>
+          <div className="swatches">
+            {Object.entries(ACCENTS).map(([id, a]) => (
+              <button
+                key={id} title={a.label} className={'swatch' + (theme.accent === id ? ' on' : '')}
+                style={{ background: a.hex }} onClick={() => setTheme({ accent: id })}
+              />
+            ))}
+          </div>
+          {[
+            ['dots', 'Точки на фоне', 'dot-сетка как у Nothing'],
+            ['glow', 'Свечение', 'пульс кнопки Играть и неоновые тени'],
+            ['animations', 'Анимации', 'переходы, волны точек, скелетоны'],
+            ['dotFont', 'Dot-шрифт заголовков', 'выкл — обычный шрифт везде'],
+            ['compact', 'Компактный вид', 'меньше отступы, больше влезает'],
+          ].map(([key, label, sub]) => (
+            <div key={key} className="toggle-row">
+              <div>
+                <div>{label}</div>
+                <div className="t-sub">{sub}</div>
+              </div>
+              <button
+                className={'switch' + ((theme as any)[key] ? ' on' : '')}
+                onClick={() => setTheme({ [key]: !(theme as any)[key] } as any)}
+                title={label}
+              />
+            </div>
+          ))}
         </div>
       </div>
     </div>

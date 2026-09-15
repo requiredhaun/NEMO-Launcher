@@ -8,7 +8,7 @@ export function GlyphLoader({ text = 'загрузка' }: { text?: string }) {
         {bars.map((i) => (
           <motion.div
             key={i}
-            style={{ width: 6, borderRadius: 3, background: i === 3 ? '#d71920' : '#f5f5f5' }}
+            style={{ width: 6, borderRadius: 3, background: i === 3 ? 'var(--red)' : '#f5f5f5' }}
             animate={{ height: [6, 26, 10, 22, 6] }}
             transition={{ duration: 1.1, repeat: Infinity, delay: i * 0.09, ease: 'easeInOut' }}
           />

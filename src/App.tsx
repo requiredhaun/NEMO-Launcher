@@ -16,6 +16,7 @@ import { bindGameEvents } from './store/gameStore'
 import { useAuth } from './store/authStore'
 import { useInstances } from './store/instancesStore'
 import { call } from './lib/ipc'
+import { applyTheme } from './lib/theme'
 import { PlayIcon, LibraryIcon, TagIcon, CompassIcon, BoxIcon, SlidersIcon, PlusIcon, UserIcon } from './components/icons'
 
 const NAV: { to: string; label: string; Icon: (p: { size?: number }) => JSX.Element }[] = [
@@ -107,6 +108,7 @@ function Shell() {
   const [boot, setBoot] = useState(true)
   useEffect(() => {
     bindGameEvents()
+    call<any>('config:get').then((c) => { if (c?.theme) applyTheme(c.theme) }).catch(() => {})
     let alive = true
     refresh().finally(() => { if (alive) setTimeout(() => alive && setBoot(false), 900) })
     return () => { alive = false }

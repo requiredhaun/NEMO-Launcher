@@ -272,6 +272,12 @@ const handlers: Record<string, Handler> = {
     if (r.canceled) return { added: [] }
     return { added: r.filePaths.map((f) => addModFile(inst.gameDir, f)) }
   },
+  'mods:addFilesByPath': (p) => {
+    const inst = resolveInstance(p)
+    const paths = ((p?.paths as string[]) || []).filter((f) => f.toLowerCase().endsWith('.jar'))
+    if (!paths.length) throw new Error('Нужны .jar файлы')
+    return { added: paths.map((f) => addModFile(inst.gameDir, f)) }
+  },
 
   'saves:list': (p) => listWorlds(resolveInstance(p).gameDir),
 

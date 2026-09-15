@@ -51,7 +51,7 @@ export function Versions() {
           {!loadersLoading && loaders.map((l) => (
             <button
               key={l.id} className="btn" title={l.hint} disabled={!l.supported}
-              style={loader === l.id ? { borderColor: 'var(--red)', color: '#ff6b6f' } : l.supported ? {} : { opacity: 0.4 }}
+              style={loader === l.id ? { borderColor: 'var(--red)', color: 'var(--accent-soft)' } : l.supported ? {} : { opacity: 0.4 }}
               onClick={() => { setLoaderTouched(true); setLoader(l.id) }}
             >
               {l.label}
@@ -78,7 +78,7 @@ export function Versions() {
         <div style={{ fontFamily: 'var(--font-dot)', letterSpacing: 2 }}>ПАМЯТЬ ДЛЯ «{inst.name}» — {inst.ramMB} МБ</div>
         <input type="range" min={1024} max={16384} step={256} value={inst.ramMB}
           onChange={(e) => update(inst.id, { ramMB: Number(e.target.value) })}
-          style={{ width: '100%', marginTop: 12, accentColor: '#d71920' }} />
+          style={{ width: '100%', marginTop: 12, accentColor: 'var(--red)' }} />
         <div className="sub" style={{ margin: '4px 0 0' }}>сколько памяти дать именно этой сборке</div>
       </div>
       {!!log.length && <div className="log" style={{ marginTop: 12 }}>{log.join('\n')}</div>}

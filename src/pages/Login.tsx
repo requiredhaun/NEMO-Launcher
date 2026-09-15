@@ -31,7 +31,7 @@ export function Login() {
           <button className="link" style={{ marginTop: 10 }} onClick={() => call('paths:openElyReg')}>Нет аккаунта? Зарегистрироваться на ely.by</button>
         </div>
       </div>
-      {err && <div style={{ color: '#ff6b6f', marginTop: 10 }}>{err}</div>}
+      {err && <div style={{ color: 'var(--accent-soft)', marginTop: 10 }}>{err}</div>}
     </div>
   )
 }
