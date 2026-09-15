@@ -5,7 +5,7 @@ import { app } from 'electron'
 import { Client, Authenticator } from 'minecraft-launcher-core'
 import { dashed } from './auth'
 import { buildCustomArgs } from './flags'
-import { versionType, mergeInherits, verifyClientJar } from './versions'
+import { versionType, mergeInherits, verifyClientJar, jvmArgsFromJson } from './versions'
 
 const ELY_AUTH = 'https://authserver.ely.by'
 
@@ -157,7 +157,16 @@ export async function launchGame(opts: LaunchOptions, emit: (c: string, d: unkno
     lc.on('debug', (e: any) => { if (e) emit('game:log', { level: 'debug', line: String(e) }) })
     lc.on('data', (e: any) => { if (e) emit('game:log', { level: 'info', line: String(e) }) })
     lc.on('close', (code: number) => { running = false; currentDir = ''; emit('game:closed', { code }) })
-    const customArgs = buildCustomArgs(opts.flagsPreset, opts.customFlags)
+    // MLC не читает arguments.jvm из json — модульные флаги Forge/NeoForge
+    // (-p, --add-modules, --add-opens) подсовываем сами через customArgs
+    let versionJson: any = null
+    try {
+      versionJson = JSON.parse(fs.readFileSync(path.join(opts.gameDir, 'versions', opts.versionId, `${opts.versionId}.json`), 'utf-8'))
+    } catch { /* verifyClientJar ниже даст понятную ошибку */ }
+    const customArgs = [
+      ...(versionJson ? jvmArgsFromJson(versionJson, { gameDir: opts.gameDir, versionId: opts.versionId, sep: process.platform === 'win32' ? ';' : ':' }) : []),
+      ...buildCustomArgs(opts.flagsPreset, opts.customFlags),
+    ]
     if (opts.auth.mode === 'ely') customArgs.unshift(...(await injectorArgs(opts.gameDir, emit)))
     await lc.launch({
       root: opts.gameDir,

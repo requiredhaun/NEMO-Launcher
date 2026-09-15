@@ -302,6 +302,54 @@ async function downloadInstaller(url: string, name: string): Promise<string> {
 }
 
 /**
+ * MLC 3.18.2 полностью игнорирует versionJson.arguments.jvm — а там у
+ * Forge/NeoForge лежат -p, --add-modules, --add-opens без которых
+ * BootstrapLauncher падает. Достаём их сами для customArgs.
+ * -cp и ${classpath} пропускаем — их генерирует сам MLC.
+ */
+export interface JvmCtx { gameDir: string; versionId: string; sep: string }
+
+function jvmRuleAllows(rules: any[]): boolean {
+  let allowed = false
+  const os = process.platform === 'win32' ? 'windows' : process.platform === 'darwin' ? 'osx' : 'linux'
+  for (const r of rules || []) {
+    if (r.os && r.os.name && r.os.name !== os) continue
+    if (r.os && r.os.arch && r.os.arch !== process.arch) continue
+    if (r.features) continue // фичи лаунчера (custom_resolution и т.п.) — не поддерживаем
+    allowed = r.action === 'allow'
+  }
+  return allowed
+}
+
+function substJvm(s: string, ctx: JvmCtx): string {
+  return s
+    .split('${library_directory}').join(path.join(ctx.gameDir, 'libraries'))
+    .split('${classpath_separator}').join(ctx.sep)
+    .split('${version_name}').join(ctx.versionId)
+    .split('${natives_directory}').join(path.join(ctx.gameDir, 'natives', ctx.versionId))
+    .split('${launcher_name}').join('NEMO')
+    .split('${launcher_version}').join('0.1')
+    .split('${classpath}').join('')
+    .split('${assets_root}').join(path.join(ctx.gameDir, 'assets'))
+    .split('${game_directory}').join(ctx.gameDir)
+}
+
+export function jvmArgsFromJson(json: any, ctx: JvmCtx): string[] {
+  const list: any[] = json?.arguments?.jvm || []
+  const out: string[] = []
+  for (const entry of list) {
+    const values: string[] =
+      typeof entry === 'string' ? [entry] : jvmRuleAllows(entry.rules || []) ? [].concat(entry.value || []) : []
+    for (const v of values) {
+      if (v === '-cp' || v === '${classpath}') continue
+      const s = substJvm(v, ctx)
+      if (s) out.push(s)
+    }
+  }
+  return out
+}
+
+/**
  * Установщики Forge/NeoForge отказываются работать в пустой папке:
  * "There is no minecraft launcher profile ... run the launcher first!"
  * Создаём минимальный launcher_profiles.json, как делает Theseus.
