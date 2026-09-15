@@ -104,6 +104,14 @@ export async function fabricLoaders(): Promise<{ version: string; stable: boolea
   return (await res.json()) as any
 }
 
+/** Загрузчики Fabric именно под этот MC (для проверки поддержки). */
+export async function fabricLoadersFor(mc: string): Promise<string[]> {
+  const res = await fetch(`${FABRIC_META}/versions/loader/${encodeURIComponent(mc)}`)
+  if (!res.ok) throw new Error(`Fabric нет для ${mc}`)
+  const arr: any[] = await res.json()
+  return arr.map((x) => x?.loader?.version || x?.version).filter(Boolean)
+}
+
 export async function installFabric(mc: string, loader: string, gameDir: string): Promise<{ id: string }> {
   const res = await fetch(`${FABRIC_META}/versions/loader/${encodeURIComponent(mc)}/${encodeURIComponent(loader)}/profile/json`)
   if (!res.ok) throw new Error(`Fabric профиль ${mc}+${loader} не найден`)
@@ -156,14 +164,73 @@ export function forgeFull(mc: string, v: string): string {
   return t.includes('-') ? t : `${mc}-${t}`
 }
 
+/**
+ * MC -> префикс версий NeoForge.
+ * Старая схема Mojang: "1.21.1" -> "21.1." ; новая: "26.2" -> "26.2.".
+ */
+export function neoPrefix(mc: string): string {
+  const parts = mc.split('.')
+  const base = parts[0] === '1' ? parts.slice(1) : parts
+  const mm = base.length >= 2 ? base.slice(0, 2).join('.') : `${base[0] || ''}.0`
+  return mm + '.'
+}
+
 export async function neoforgeVersions(mc: string): Promise<string[]> {
   const res = await fetch(NEOFORGE_META)
   if (!res.ok) throw new Error(`NeoForge meta: ${res.status}`)
   const body: any = await res.json()
   const versions: string[] = body?.versions || []
-  // NeoForge версии вида 21.1.123 — мажор минора совпадает с MC (21.1 = 1.21.1)
-  const want = mc.split('.').slice(1).join('.')
-  return versions.filter((v) => v.startsWith(want + '.') || v === want).slice(-20).reverse()
+  const prefix = neoPrefix(mc)
+  const matched = versions.filter((v) => v.startsWith(prefix))
+  if (!matched.length) return []
+  const stable = matched.filter((v) => !v.includes('beta'))
+  return (stable.length ? stable : matched).slice(-20).reverse()
+}
+
+/**
+ * Найти id установленной версии среди папок versions/ по паре mc+full.
+ * Точное совпадение (mc и билд) вместо первого попавшегося *-forge-*.
+ */
+export function matchInstalledVersion(dirs: string[], mc: string, full: string): string | null {
+  const cands = dirs.filter((d) => d !== mc)
+  const build = full.includes('-') ? full.split('-').slice(1).join('-') : full
+  if (build) {
+    const exact = cands.find((d) => d.includes(mc) && d.includes(build))
+    if (exact) return exact
+  }
+  return cands.find((d) => d.includes(mc) && /forge|neoforge|fabric|quilt/i.test(d)) || null
+}
+
+export type LoaderSupport = Record<string, { supported: boolean; versions: string[] }>
+
+/** Одним запросом: какие загрузчики есть под MC и их версии. */
+export async function loaderSupport(mc: string): Promise<LoaderSupport> {
+  const out: LoaderSupport = {
+    vanilla: { supported: true, versions: [] },
+    fabric: { supported: false, versions: [] },
+    quilt: { supported: false, versions: [] },
+    forge: { supported: false, versions: [] },
+    neoforge: { supported: false, versions: [] },
+  }
+  const [fabric, quilt, promos, neo] = await Promise.allSettled([
+    fabricLoadersFor(mc),
+    quiltLoaders(mc),
+    forgePromos(),
+    neoforgeVersions(mc),
+  ])
+  if (fabric.status === 'fulfilled' && fabric.value.length) {
+    out.fabric = { supported: true, versions: fabric.value.slice(0, 10) }
+  }
+  if (quilt.status === 'fulfilled' && quilt.value.length) {
+    out.quilt = { supported: true, versions: quilt.value.slice(0, 10) }
+  }
+  if (promos.status === 'fulfilled' && promos.value[mc]) {
+    out.forge = { supported: true, versions: [promos.value[mc]] }
+  }
+  if (neo.status === 'fulfilled' && neo.value.length) {
+    out.neoforge = { supported: true, versions: neo.value }
+  }
+  return out
 }
 
 async function downloadInstaller(url: string, name: string): Promise<string> {

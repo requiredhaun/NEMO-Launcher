@@ -2,15 +2,8 @@ import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useInstances } from '../store/instancesStore'
 import { useGame } from '../store/gameStore'
+import { useLoaderSupport } from '../lib/loaders'
 import { call } from '../lib/ipc'
-
-const LOADERS: { id: string; label: string; hint: string }[] = [
-  { id: 'vanilla', label: 'Без модов', hint: 'чистый Minecraft' },
-  { id: 'fabric', label: 'Fabric', hint: 'лёгкий, много модов' },
-  { id: 'quilt', label: 'Quilt', hint: 'форк Fabric' },
-  { id: 'forge', label: 'Forge', hint: 'классика, ставится дольше' },
-  { id: 'neoforge', label: 'NeoForge', hint: 'современный Forge' },
-]
 
 export function Instances() {
   const { instances, selectedId, refresh, select, remove } = useInstances()
@@ -19,13 +12,14 @@ export function Instances() {
   const [name, setName] = useState('')
   const [mc, setMc] = useState('1.21.11')
   const [loader, setLoader] = useState('vanilla')
-  const [options, setOptions] = useState<string[]>([])
   const [picked, setPicked] = useState('')
   const [manifest, setManifest] = useState<any[]>([])
   const [creating, setCreating] = useState(false)
   const [clog, setClog] = useState<string[]>([])
   const [err, setErr] = useState('')
   const [playErr, setPlayErr] = useState('')
+  const { loaders, loading: loadersLoading } = useLoaderSupport(mc)
+  const loaderVersions = loaders.find((l) => l.id === loader)?.versions || []
 
   useEffect(() => {
     refresh()
@@ -39,20 +33,12 @@ export function Instances() {
   }, [])
 
   useEffect(() => {
-    let alive = true
     setPicked('')
-    ;(async () => {
-      try {
-        let opts: string[] = []
-        if (loader === 'fabric') opts = (await call<any[]>('versions:fabricLoaders')).map((l) => l.version).slice(0, 10)
-        else if (loader === 'quilt') opts = await call<string[]>('versions:quiltLoaders', { mc })
-        else if (loader === 'forge') opts = (Object.values(await call<any>('versions:forgePromos')).filter(Boolean) as string[]).slice(0, 10)
-        else if (loader === 'neoforge') opts = await call<string[]>('versions:neoforge', { mc })
-        if (alive) setOptions(opts)
-      } catch { if (alive) setOptions([]) }
-    })()
-    return () => { alive = false }
-  }, [loader, mc])
+    if (!loadersLoading && loader !== 'vanilla' && loaders.find((l) => l.id === loader)?.supported === false) {
+      setLoader('vanilla')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loader, mc, loadersLoading])
 
   const submit = async () => {
     setErr('')
@@ -85,10 +71,11 @@ export function Instances() {
           </select>
         </div>
         <div className="row" style={{ flexWrap: 'wrap', marginTop: 10 }}>
-          {LOADERS.map((l) => (
+          {loadersLoading && <span className="sub">Проверяю, что вышло под {mc}…</span>}
+          {!loadersLoading && loaders.map((l) => (
             <button
-              key={l.id} className="btn" title={l.hint}
-              style={loader === l.id ? { borderColor: 'var(--red)', color: '#ff6b6f' } : {}}
+              key={l.id} className="btn" title={l.hint} disabled={!l.supported}
+              style={loader === l.id ? { borderColor: 'var(--red)', color: '#ff6b6f' } : l.supported ? {} : { opacity: 0.4 }}
               onClick={() => setLoader(l.id)}
             >
               {l.label}
@@ -99,7 +86,7 @@ export function Instances() {
           <div className="row" style={{ marginTop: 10 }}>
             <select className="select" value={picked} onChange={(e) => setPicked(e.target.value)} style={{ maxWidth: 260 }}>
               <option value="">последняя / рекомендуемая</option>
-              {options.map((o) => <option key={o} value={o}>{o}</option>)}
+              {loaderVersions.map((o) => <option key={o} value={o}>{o}</option>)}
             </select>
             <span className="sub" style={{ margin: 0 }}>загрузчик поставится сразу при создании</span>
           </div>

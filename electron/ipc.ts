@@ -9,7 +9,7 @@ import { elyEnsureValid, elyLogin, elyLogout, loadSession } from './auth'
 import {
   getManifest, installedVersions, fabricLoaders, installFabric, quiltLoaders, installQuilt,
   forgePromos, forgeFull, downloadForgeInstaller, downloadNeoForgeInstaller, neoforgeVersions,
-  runModdedInstaller, detectJava,
+  matchInstalledVersion, loaderSupport, runModdedInstaller, detectJava,
 } from './versions'
 import { launchGame } from './launcher'
 import { FLAG_PRESETS } from './flags'
@@ -21,6 +21,24 @@ import { listMods, toggleMod, deleteMod, addModFile, listWorlds } from './mods'
 type Handler = (payload: any) => Promise<unknown> | unknown
 
 function userData(): string { return app.getPath('userData') }
+
+/**
+ * Java для запуска установщиков Forge/NeoForge: нужна 17+.
+ * Системная не подходит или её нет — качаем рантайм Mojang, как для игры.
+ */
+async function installerJava(gameDir: string, mc: string, send: (l: string) => void): Promise<string> {
+  const cfg = getConfig()
+  const detected = await detectJava(cfg.javaPath)
+  if (detected && parseJavaMajor(detected.version) >= 17) {
+    return cfg.javaPath || detected.path
+  }
+  const need = Math.max(17, majorForMc(mc))
+  send(`Системная Java не подходит для установщика — качаю Java ${need}…`)
+  return ensureJavaRuntime(gameDir, need, (done, total, name) => {
+    const win = getMainWindow()
+    if (win && !win.isDestroyed()) win.webContents.send('launch:progress', { type: 'java', kind: `Java ${need}`, name, task: done, total })
+  })
+}
 
 function resolveInstance(payload: any): Instance {
   const cfg = getConfig()
@@ -143,6 +161,7 @@ const handlers: Record<string, Handler> = {
   'versions:quiltLoaders': (p) => quiltLoaders(String(p?.mc || '1.21.11')),
   'versions:forgePromos': () => forgePromos(),
   'versions:neoforge': (p) => neoforgeVersions(String(p?.mc || '1.21.11')),
+  'versions:loaderSupport': (p) => loaderSupport(String(p?.mc || '')),
   'versions:install': async (p) => {
     const inst = resolveInstance(p)
     const loader = String(p?.loader || 'vanilla')
@@ -161,25 +180,24 @@ const handlers: Record<string, Handler> = {
     } else if (loader === 'forge') {
       const promos = await forgePromos()
       const full = forgeFull(mc, String(p?.full || promos[mc] || ''))
-      if (!full) throw new Error(`Forge для ${mc} не найден`)
+      if (!full) throw new Error(`Forge не вышел для Minecraft ${mc} — выбери Fabric, NeoForge или другую версию игры`)
       send(`Скачиваю Forge ${full}…`)
       const jar = await downloadForgeInstaller(full)
-      const java = await detectJava(getConfig().javaPath)
-      if (!java) throw new Error('Нужна Java для установщика Forge')
-      await runModdedInstaller(jar, inst.gameDir, getConfig().javaPath || java.path, send)
+      const javaPath = await installerJava(inst.gameDir, mc, send)
+      await runModdedInstaller(jar, inst.gameDir, javaPath, send)
       const all = Array.from(installedVersions(inst.gameDir))
-      versionId = all.find((v) => v.includes(full) || v.includes('forge')) || mc
+      versionId = matchInstalledVersion(all, mc, full) || mc
+      if (versionId === mc) send('Установщик отработал, но версия не опознана — проверь список вручную')
     } else if (loader === 'neoforge') {
       const vers = await neoforgeVersions(mc)
       const v = String(p?.full || '') || vers[0]
-      if (!v) throw new Error(`NeoForge для ${mc} не найден`)
+      if (!v) throw new Error(`NeoForge не вышел для Minecraft ${mc} — выбери Fabric, Forge или другую версию игры`)
       send(`Скачиваю NeoForge ${v}…`)
       const jar = await downloadNeoForgeInstaller(v)
-      const java = await detectJava(getConfig().javaPath)
-      if (!java) throw new Error('Нужна Java для установщика NeoForge')
-      await runModdedInstaller(jar, inst.gameDir, getConfig().javaPath || java.path, send)
+      const javaPath = await installerJava(inst.gameDir, mc, send)
+      await runModdedInstaller(jar, inst.gameDir, javaPath, send)
       const all = Array.from(installedVersions(inst.gameDir))
-      versionId = all.find((x) => x.includes(v) || x.includes('neoforge')) || mc
+      versionId = matchInstalledVersion(all, mc, v) || mc
     }
     const next: Instance = { ...inst, mcVersion: mc, loader: loader as any, loaderVersion: String(p?.loaderVersion || p?.full || ''), versionId }
     if (inst.id !== 'legacy') writeInstance(next)
