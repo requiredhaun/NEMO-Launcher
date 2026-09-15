@@ -170,6 +170,70 @@ a.card:hover { transform: translateY(-3px); border-color: #3d3d3d; box-shadow: 0
 .tag.live { color: #ff6b6f; border-color: var(--red); animation: blink 1.6s infinite; }
 .card.hero { border-color: #333; background: linear-gradient(135deg, #121212 0%, #0a0a0a 60%, rgba(215,25,32,.08) 100%); }
 
+/* шапка сборки + табы как в Modrinth App */
+.inst-head {
+  display: flex; gap: 16px; align-items: center;
+  background: linear-gradient(135deg, #121212 0%, #0a0a0a 60%, rgba(215,25,32,.08) 100%);
+  border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px;
+}
+.inst-avatar {
+  width: 56px; height: 56px; border-radius: 14px; flex-shrink: 0;
+  display: grid; place-items: center;
+  font-family: var(--font-dot); font-size: 26px; color: #fff;
+  background: radial-gradient(#3a3a3a 1px, transparent 1.4px), #161616;
+  background-size: 8px 8px;
+  border: 1px solid #333;
+}
+.subtabs { display: flex; gap: 8px; margin: 16px 0; flex-wrap: wrap; }
+.subtab {
+  font-family: var(--font-dot); font-size: 13px; letter-spacing: 1.5px;
+  padding: 9px 16px; border-radius: 8px; cursor: pointer;
+  border: 1px solid transparent; background: transparent; color: var(--dim);
+  transition: all .18s; display: flex; gap: 8px; align-items: center;
+}
+.subtab:hover { color: var(--txt); background: #101010; }
+.subtab.on { color: var(--txt); background: var(--panel2); border-color: var(--line); }
+.subtab .count {
+  font-size: 11px; background: #1e1e1e; border: 1px solid var(--line);
+  border-radius: 99px; padding: 1px 8px; color: var(--dim);
+}
+
+/* таблица модов */
+.mtable { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: #0a0a0a; }
+.mrow {
+  display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.6fr) auto;
+  gap: 12px; align-items: center; padding: 12px 16px; border-top: 1px solid #161616;
+}
+.mrow:first-child { border-top: none; }
+.mrow.mhead { color: var(--dim); font-size: 12px; letter-spacing: 1px; background: #0d0d0d; padding: 10px 16px; }
+.mrow:not(.mhead):hover { background: #101010; }
+.mrow.off { opacity: 0.55; }
+.mproj { display: flex; gap: 12px; align-items: center; min-width: 0; }
+.mchip {
+  width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
+  display: grid; place-items: center; font-family: var(--font-dot); font-size: 17px;
+  background: #161616; border: 1px solid #2c2c2c;
+}
+.mname { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.msub { display: block; color: var(--dim); font-size: 12px; }
+.mfile { font-family: Consolas, monospace; font-size: 12px; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mactions { display: flex; gap: 10px; align-items: center; justify-content: flex-end; }
+.switch {
+  width: 42px; height: 23px; border-radius: 99px; cursor: pointer; flex-shrink: 0;
+  background: #1c1c1c; border: 1px solid var(--line); position: relative; transition: all .2s;
+}
+.switch::after {
+  content: ""; position: absolute; top: 2px; left: 2px; width: 17px; height: 17px;
+  border-radius: 50%; background: #777; transition: all .2s;
+}
+.switch.on { background: var(--red); border-color: #ff2b33; box-shadow: 0 0 10px rgba(215,25,32,.4); }
+.switch.on::after { left: 21px; background: #fff; }
+.icon-btn {
+  background: transparent; border: 1px solid transparent; border-radius: 8px;
+  cursor: pointer; font-size: 16px; padding: 5px 8px; transition: all .16s; filter: grayscale(1);
+}
+.icon-btn:hover { border-color: var(--red); filter: none; transform: scale(1.1); }
+
 @media (max-width: 900px) {
   .browse { flex-direction: column; }
   .filters { width: 100%; max-height: none; position: static; }

@@ -11,6 +11,7 @@ interface S {
   create: (name: string, mc: string) => Promise<void>
   select: (id: string) => Promise<void>
   remove: (id: string) => Promise<void>
+  update: (id: string, patch: Partial<Instance>) => Promise<void>
 }
 
 export const useInstances = create<S>((set, get) => ({
@@ -30,6 +31,10 @@ export const useInstances = create<S>((set, get) => ({
   },
   select: async (id) => { await call('instances:select', { id }); set({ selectedId: id }) },
   remove: async (id) => { await call('instances:remove', { id }); await get().refresh() },
+  update: async (id, patch) => {
+    await call('instances:update', { id, patch })
+    set((s) => ({ instances: s.instances.map((i) => (i.id === id ? { ...i, ...patch } : i)) }))
+  },
 }))
 
 export function selectedInstance(list: Instance[], id: string): Instance | undefined {

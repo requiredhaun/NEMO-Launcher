@@ -12,7 +12,7 @@ const LOADERS: { id: string; label: string }[] = [
 ]
 
 export function Versions() {
-  const { instances, selectedId, refresh } = useInstances()
+  const { instances, selectedId, refresh, update } = useInstances()
   const inst = selectedInstance(instances, selectedId)
   const [loader, setLoader] = useState('fabric')
   const [options, setOptions] = useState<string[]>([])
@@ -88,6 +88,13 @@ export function Versions() {
           </div>
         )}
         {busy && <div style={{ marginTop: 12 }}><GlyphLoader text="Ставлю версию…" /></div>}
+      </div>
+      <div className="card" style={{ marginTop: 14 }}>
+        <div style={{ fontFamily: 'var(--font-dot)', letterSpacing: 2 }}>ПАМЯТЬ ДЛЯ «{inst.name}» — {inst.ramMB} МБ</div>
+        <input type="range" min={1024} max={16384} step={256} value={inst.ramMB}
+          onChange={(e) => update(inst.id, { ramMB: Number(e.target.value) })}
+          style={{ width: '100%', marginTop: 12, accentColor: '#d71920' }} />
+        <div className="sub" style={{ margin: '4px 0 0' }}>сколько памяти дать именно этой сборке</div>
       </div>
       {!!log.length && <div className="log" style={{ marginTop: 12 }}>{log.join('\n')}</div>}
     </div>

@@ -16,6 +16,7 @@ import { FLAG_PRESETS } from './flags'
 import { ensureJavaRuntime, parseJavaMajor, majorForMc } from './javaRuntime'
 import { searchProjects, projectVersions, pickVersion, downloadUrl, MOD_CATEGORIES, type ModVersion } from './modrinth'
 import { planDests, safeDest, writeFileChecked } from './mrpack'
+import { listMods, toggleMod, deleteMod, addModFile, listWorlds } from './mods'
 
 type Handler = (payload: any) => Promise<unknown> | unknown
 
@@ -239,13 +240,31 @@ const handlers: Record<string, Handler> = {
   },
   'gamedir:reset': () => updateConfig({ gameDir: defaultGameDir() }),
 
-  'mods:list': (p) => {
-    const dir = path.join(resolveInstance(p).gameDir, 'mods')
-    try {
-      return fs.readdirSync(dir).filter((f) => f.endsWith('.jar')).map((f) => ({ name: f, size: fs.statSync(path.join(dir, f)).size }))
-    } catch { return [] }
+  'mods:list': (p) => listMods(resolveInstance(p).gameDir),
+  'mods:toggle': (p) => ({ enabled: toggleMod(resolveInstance(p).gameDir, String(p?.file || '')) }),
+  'mods:delete': (p) => { deleteMod(resolveInstance(p).gameDir, String(p?.file || p?.name || '')); return { ok: true } },
+  'mods:addFiles': async (p) => {
+    const inst = resolveInstance(p)
+    const r = await dialog.showOpenDialog(getMainWindow()!, {
+      title: 'Выбери .jar моды', properties: ['openFile', 'multiSelections'],
+      filters: [{ name: 'Моды Minecraft', extensions: ['jar'] }],
+    })
+    if (r.canceled) return { added: [] }
+    return { added: r.filePaths.map((f) => addModFile(inst.gameDir, f)) }
   },
-  'mods:delete': (p) => { fs.unlinkSync(path.join(resolveInstance(p).gameDir, 'mods', path.basename(String(p?.name || '')))); return { ok: true } },
+
+  'saves:list': (p) => listWorlds(resolveInstance(p).gameDir),
+
+  'paths:open': (p) => {
+    const rel = String(p?.rel || '')
+    if (rel.includes('..')) throw new Error('Некорректный путь')
+    const base = resolveInstance(p).gameDir
+    const target = rel ? path.join(base, ...rel.split('/')) : base
+    fs.mkdirSync(target, { recursive: true })
+    shell.openPath(target)
+    return { ok: true }
+  },
+  'paths:openElyReg': () => { shell.openExternal('https://ely.by/reg'); return { ok: true } },
 
   'modrinth:search': (p) => searchProjects(String(p?.query || ''), (p?.kind as any) || 'mod', String(p?.gameVersion || ''), String(p?.loader || ''), Number(p?.offset) || 0, (p?.categories as string[]) || []),
   'modrinth:categories': () => [...MOD_CATEGORIES],

@@ -22,7 +22,7 @@ export function Settings() {
       <p className="sub">всего памяти: {info?.totalRamMB} МБ · советуем: {info?.recommendedRamMB} МБ</p>
       <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))' }}>
         <div className="card">
-          <div style={{ fontFamily: 'var(--font-dot)', letterSpacing: 2 }}>ПАМЯТЬ — {cfg.ramMB} МБ</div>
+          <div style={{ fontFamily: 'var(--font-dot)', letterSpacing: 2 }}>ПАМЯТЬ ПО УМОЛЧАНИЮ — {cfg.ramMB} МБ</div>
           <input type="range" min={1024} max={Math.min(16384, info?.totalRamMB || 8192)} step={256} value={cfg.ramMB}
             onChange={(e) => set({ ramMB: Number(e.target.value) })} style={{ width: '100%', marginTop: 12, accentColor: '#d71920' }} />
           {cfg.ramMB > (info?.totalRamMB || 8192) * 0.7 && <div style={{ color: '#ffb020' }}>⚠ больше 70% ОЗУ системы</div>}
