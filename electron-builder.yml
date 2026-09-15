@@ -1,5 +1,5 @@
 appId: com.nema.launcher
-productName: Nema Launcher
+productName: NEMO
 directories:
   output: release
 files:
