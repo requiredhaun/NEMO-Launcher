@@ -49,6 +49,7 @@ export function Home() {
               {(launching) && !playing && (
                 <div style={{ width: 320, maxWidth: '100%', marginTop: 8 }}>
                   <div className="progress"><div style={{ width: `${Math.round(progress * 100)}%` }} /></div>
+                  <div className="sub" style={{ margin: '4px 0 0' }}>{Math.round(progress * 100)}%</div>
                 </div>
               )}
               {err && <div style={{ color: 'var(--accent-soft)', marginTop: 8 }}>{err}</div>}
