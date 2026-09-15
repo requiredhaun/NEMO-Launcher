@@ -92,6 +92,32 @@ export function Settings() {
             </div>
           ))}
         </div>
+        <div className="card">
+          <div style={{ fontFamily: 'var(--font-dot)', letterSpacing: 2 }}>DISCORD</div>
+          <div className="toggle-row" style={{ marginTop: 6 }}>
+            <div>
+              <div>Статус в Discord</div>
+              <div className="t-sub">что запущено — видно в профиле</div>
+            </div>
+            <button
+              className={'switch' + (cfg.discordRpc ? ' on' : '')}
+              onClick={() => set({ discordRpc: !cfg.discordRpc }).then(() => call('discord:refresh'))}
+              title="Discord Rich Presence"
+            />
+          </div>
+          {cfg.discordRpc && (
+            <>
+              <input
+                className="input" style={{ marginTop: 8 }} value={cfg.discordClientId || ''}
+                onChange={(e) => set({ discordClientId: e.target.value })}
+                placeholder="Application Client ID…"
+              />
+              <button className="link" style={{ marginTop: 8 }} onClick={() => call('paths:openUrl', { url: 'https://discord.com/developers/applications' })}>
+                Где взять? Создай приложение на discord.com/developers
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   )

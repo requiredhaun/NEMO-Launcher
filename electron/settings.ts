@@ -31,6 +31,8 @@ export interface LauncherConfig {
   gameHeight: number
   servers: ServerEntry[]
   theme: ThemeConfig
+  discordRpc: boolean
+  discordClientId: string
   windowBounds?: { x?: number; y?: number; width: number; height: number }
   selectedInstanceId?: string
 }
@@ -58,6 +60,8 @@ function defaults(): LauncherConfig {
     gameHeight: 720,
     servers: [],
     theme: defaultTheme(),
+    discordRpc: false,
+    discordClientId: '',
   }
 }
 

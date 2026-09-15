@@ -17,6 +17,7 @@ import { ensureJavaRuntime, parseJavaMajor, majorForMc } from './javaRuntime'
 import { searchProjects, projectVersions, pickVersion, downloadUrl, MOD_CATEGORIES, type ModVersion } from './modrinth'
 import { planDests, safeDest, writeFileChecked } from './mrpack'
 import { listMods, toggleMod, deleteMod, addModFile, listWorlds } from './mods'
+import { rpcIdle, rpcLaunching, rpcPlaying, rpcClear } from './rpc'
 
 type Handler = (payload: any) => Promise<unknown> | unknown
 
@@ -221,8 +222,12 @@ const handlers: Record<string, Handler> = {
       auth = { mode: 'offline', name: cfg.nick }
     }
     const win = getMainWindow()
-    const emit = (c: string, d: unknown) => { if (win && !win.isDestroyed()) win.webContents.send(c, d) }
+    const emit = (c: string, d: unknown) => {
+      if (c === 'game:closed') void rpcClear()
+      if (win && !win.isDestroyed()) win.webContents.send(c, d)
+    }
     fs.mkdirSync(inst.gameDir, { recursive: true })
+    rpcLaunching(inst.name)
     emit('launch:status', { phase: 'download', status: 'Подготовка версии…' })
     let javaPath = cfg.javaPath.trim()
     let major = majorForMc(inst.mcVersion)
@@ -247,7 +252,7 @@ const handlers: Record<string, Handler> = {
       flagsPreset: cfg.flagsPreset, customFlags: cfg.customFlags,
       fullscreen: cfg.fullscreenGame, gameWidth: cfg.gameWidth, gameHeight: cfg.gameHeight, auth,
       server: p?.server?.host ? { host: String(p.server.host), port: Number(p.server.port) || 25565 } : undefined,
-    }, emit).then(() => emit('launch:status', { phase: 'run', status: 'Игра запущена' }))
+    }, emit).then(() => { emit('launch:status', { phase: 'run', status: 'Игра запущена' }); rpcPlaying(inst.versionId, auth.name) })
       .catch((e) => { emit('launch:status', { phase: 'error', status: `Ошибка: ${e?.message || e}` }); emit('game:closed', { code: 1 }) })
     return { started: true }
   },
@@ -291,6 +296,12 @@ const handlers: Record<string, Handler> = {
     return { ok: true }
   },
   'paths:openElyReg': () => { shell.openExternal('https://ely.by/reg'); return { ok: true } },
+  'paths:openUrl': (p) => {
+    const url = String(p?.url || '')
+    if (/^https:\/\/(discord\.com|ptb\.discord\.com)\//.test(url)) shell.openExternal(url)
+    return { ok: true }
+  },
+  'discord:refresh': () => { rpcIdle(); return { ok: true } },
 
   'modrinth:search': (p) => searchProjects(String(p?.query || ''), (p?.kind as any) || 'mod', String(p?.gameVersion || ''), String(p?.loader || ''), Number(p?.offset) || 0, (p?.categories as string[]) || []),
   'modrinth:categories': () => [...MOD_CATEGORIES],
@@ -343,6 +354,7 @@ const handlers: Record<string, Handler> = {
 
 export function registerIpc(): void {
   const win = getMainWindow
+  rpcIdle()
   ipcMain.handle('window:minimize', () => win()?.minimize())
   ipcMain.handle('window:maximize', () => { const w = win(); if (w) { if (w.isMaximized()) w.unmaximize(); else w.maximize() } })
   ipcMain.handle('window:close', () => win()?.close())

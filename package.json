@@ -1,7 +1,7 @@
 {
   "name": "nemo",
   "productName": "NEMO",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "description": "NEMO — Minecraft лаунчер: сборки, моды и модпаки с Modrinth",
   "author": "Nema",
   "private": true,
@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "adm-zip": "^0.5.16",
+    "discord-rich-presence": "^0.0.8",
     "minecraft-launcher-core": "^3.18.2"
   },
   "devDependencies": {
