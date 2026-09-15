@@ -30,7 +30,13 @@ export const useInstances = create<S>((set, get) => ({
     set({ selectedId: inst.id })
   },
   select: async (id) => { await call('instances:select', { id }); set({ selectedId: id }) },
-  remove: async (id) => { await call('instances:remove', { id }); await get().refresh() },
+  remove: async (id) => {
+    const list = await call<Instance[]>('instances:remove', { id })
+    const cur = get().selectedId
+    const next = list.some((i) => i.id === cur) ? cur : (list[0]?.id || '')
+    if (next && next !== cur) await call('instances:select', { id: next })
+    set({ instances: list, selectedId: next })
+  },
   update: async (id, patch) => {
     await call('instances:update', { id, patch })
     set((s) => ({ instances: s.instances.map((i) => (i.id === id ? { ...i, ...patch } : i)) }))

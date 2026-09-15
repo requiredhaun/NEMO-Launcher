@@ -16,10 +16,14 @@ import { bindGameEvents } from './store/gameStore'
 import { useAuth } from './store/authStore'
 import { useInstances } from './store/instancesStore'
 import { call } from './lib/ipc'
+import { PlayIcon, LibraryIcon, TagIcon, CompassIcon, BoxIcon, SlidersIcon, PlusIcon } from './components/icons'
 
-const NAV = [
-  ['/', 'ИГРАТЬ'], ['/instances', 'БИБЛИОТЕКА'], ['/versions', 'ВЕРСИЯ'],
-  ['/mods', 'МОДЫ'], ['/packs', 'СБОРКИ'], ['/login', 'АККАУНТ'], ['/settings', 'НАСТРОЙКИ'],
+const NAV: { to: string; label: string; Icon: (p: { size?: number }) => JSX.Element }[] = [
+  { to: '/', label: 'Играть', Icon: PlayIcon },
+  { to: '/instances', label: 'Библиотека', Icon: LibraryIcon },
+  { to: '/versions', label: 'Версия сборки', Icon: TagIcon },
+  { to: '/mods', label: 'Моды', Icon: CompassIcon },
+  { to: '/packs', label: 'Сборки модпаков', Icon: BoxIcon },
 ]
 
 function AnimatedRoutes() {
@@ -43,6 +47,7 @@ function AnimatedRoutes() {
 
 function Sidebar() {
   const { instances, create } = useInstances()
+  const { nick } = useAuth()
   const nav = useNavigate()
   const [busy, setBusy] = useState(false)
 
@@ -65,26 +70,33 @@ function Sidebar() {
   }
 
   return (
-    <aside className="sidebar">
-      {NAV.map(([to, label]) => (
-        <NavLink key={to} to={to} className={({ isActive }) => 'nav-item' + (isActive ? ' active' : '')}>
-          {({ isActive }) => (
-            <>
-              <span className="dot" />{label}
-              {isActive && <motion.span layoutId="nav-pill" className="nav-pill" transition={{ type: 'spring', stiffness: 500, damping: 38 }} />}
-            </>
-          )}
-        </NavLink>
-      ))}
-      <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <aside className="rail">
+      <button className="rail-avatar" title={nick ? `${nick} — аккаунт` : 'Аккаунт'} onClick={() => nav('/login')}>
+        {(nick || '?').slice(0, 1).toUpperCase()}
+      </button>
+      <div className="rail-group">
+        {NAV.map(({ to, label, Icon }) => (
+          <NavLink key={to} to={to} data-tip={label} className={({ isActive }) => 'rail-btn' + (isActive ? ' active' : '')}>
+            {({ isActive }) => (
+              <>
+                <Icon size={21} />
+                {isActive && <motion.span layoutId="nav-pill" className="nav-pill" transition={{ type: 'spring', stiffness: 500, damping: 38 }} />}
+              </>
+            )}
+          </NavLink>
+        ))}
+      </div>
+      <div className="rail-bottom">
         <motion.button
-          className="btn play" title="Новая сборка" onClick={quickCreate} disabled={busy}
-          whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.93 }}
-          style={{ padding: '10px 0', fontSize: 20 }}
+          className="rail-btn create" data-tip="Новая сборка" onClick={quickCreate} disabled={busy}
+          whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.9 }}
         >
-          {busy ? '…' : '+'}
+          {busy ? '…' : <PlusIcon size={21} />}
         </motion.button>
-        <div className="badge" style={{ textAlign: 'center' }}>v{__APP_VERSION__}</div>
+        <NavLink to="/settings" data-tip="Настройки" className={({ isActive }) => 'rail-btn' + (isActive ? ' active' : '')}>
+          <SlidersIcon size={21} />
+        </NavLink>
+        <div className="rail-ver" title={`NEMO ${__APP_VERSION__}`}>v{__APP_VERSION__}</div>
       </div>
     </aside>
   )

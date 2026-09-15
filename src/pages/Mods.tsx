@@ -39,6 +39,8 @@ export function Mods() {
   const [q, setQ] = useState('')
   const [hits, setHits] = useState<any[]>([])
   const [total, setTotal] = useState(0)
+  const [offset, setOffset] = useState(0)
+  const LIMIT = 24
   const [allCats, setAllCats] = useState<string[]>([])
   const [cats, setCats] = useState<string[]>([])
   const [busy, setBusy] = useState('')
@@ -59,15 +61,23 @@ export function Mods() {
     if (tab === 'worlds' && inst) call<any[]>('saves:list', { instanceId: inst.id }).then(setWorlds).catch(() => {})
   }, [tab, inst?.id])
 
+  const doSearch = async (query: string, categories: string[], off: number, append: boolean) => {
+    if (!inst) return
+    setLoading(true)
+    try {
+      const r = await call<any>('modrinth:search', { query, kind: 'mod', gameVersion: inst.mcVersion, loader: inst.loader, categories, offset: off })
+      setHits((prev) => (append ? [...prev, ...r.hits] : r.hits))
+      setTotal(r.total)
+      setOffset(off)
+    } catch { /* ignore */ }
+    finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
     if (tab !== 'catalog' || !inst) return
-    setLoading(true)
-    const t = setTimeout(() => {
-      call<any>('modrinth:search', { query: q, kind: 'mod', gameVersion: inst.mcVersion, loader: inst.loader, categories: cats })
-        .then((r) => { setHits(r.hits); setTotal(r.total) })
-        .catch(() => {})
-        .finally(() => setLoading(false))
-    }, 350)
+    const t = setTimeout(() => { doSearch(q, cats, 0, false) }, 350)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, cats.join(','), inst?.id, tab])
@@ -216,6 +226,14 @@ export function Mods() {
                 ))}
               </AnimatePresence>
             </div>
+          </div>
+          <div className="row" style={{ justifyContent: 'center', marginTop: 14 }}>
+            <span className="sub" style={{ margin: 0 }}>показано {hits.length} из {total.toLocaleString()}</span>
+            {hits.length < total && (
+              <button className="btn ghost" disabled={loading} onClick={() => doSearch(q, cats, offset + LIMIT, true)}>
+                {loading ? 'Гружу…' : 'Показать ещё'}
+              </button>
+            )}
           </div>
         </div>
       )}

@@ -18,6 +18,13 @@ export function Instances() {
   const [clog, setClog] = useState<string[]>([])
   const [err, setErr] = useState('')
   const [playErr, setPlayErr] = useState('')
+  const [armDel, setArmDel] = useState('')
+
+  useEffect(() => {
+    if (!armDel) return
+    const t = setTimeout(() => setArmDel(''), 5000)
+    return () => clearTimeout(t)
+  }, [armDel])
   const { loaders, loading: loadersLoading } = useLoaderSupport(mc)
   const loaderVersions = loaders.find((l) => l.id === loader)?.versions || []
 
@@ -118,7 +125,14 @@ export function Instances() {
                     {playing && i.id === selectedId ? 'В игре' : '▶'}
                   </button>
                   {i.id === selectedId ? <span className="badge red">ВЫБРАНА</span> : <button className="btn ghost" onClick={() => select(i.id)}>Выбрать</button>}
-                  <button className="btn ghost" onClick={() => { if (confirm(`Удалить ${i.name}?`)) remove(i.id) }}>Удалить</button>
+                  {armDel === i.id ? (
+                    <>
+                      <button className="btn" style={{ borderColor: 'var(--red)', color: '#ff6b6f' }} onClick={() => { remove(i.id); setArmDel('') }}>Точно удалить?</button>
+                      <button className="btn ghost" onClick={() => setArmDel('')}>Нет</button>
+                    </>
+                  ) : (
+                    <button className="btn ghost" onClick={() => setArmDel(i.id)}>Удалить</button>
+                  )}
                 </div>
               </div>
             </motion.div>

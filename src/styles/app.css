@@ -57,24 +57,48 @@ body {
 .win-btns button:hover { border-color: var(--red); color: var(--red); transform: translateY(-1px); }
 
 .layout { flex: 1; display: flex; min-height: 0; }
-.sidebar {
-  width: 212px; border-right: 1px solid var(--line); padding: 14px 10px;
-  display: flex; flex-direction: column; gap: 6px; background: rgba(5,5,5,.6);
+/* рейл как у AstralRinth: узкая колонка иконок */
+.rail {
+  width: 68px; flex-shrink: 0; padding: 12px 0;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  background: rgba(5,5,5,.6); user-select: none;
 }
-.nav-item {
-  position: relative;
-  display: flex; align-items: center; gap: 10px; padding: 10px 12px 10px 16px; border-radius: 8px;
-  border: 1px solid transparent; color: var(--dim); cursor: pointer;
-  font-family: var(--font-dot); font-size: 13px; letter-spacing: 1.5px;
-  transition: all .22s cubic-bezier(.2,.9,.25,1.2); background: transparent; text-align: left; width: 100%;
-  text-decoration: none;
+.rail-group { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 6px; }
+.rail-bottom { margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.rail-avatar {
+  width: 42px; height: 42px; border-radius: 12px; cursor: pointer;
+  display: grid; place-items: center;
+  font-family: var(--font-dot); font-size: 19px; color: #fff;
+  background: radial-gradient(#3a3a3a 1px, transparent 1.4px), #161616;
+  background-size: 8px 8px; border: 1px solid #333; transition: all .18s;
 }
-.nav-item:hover { color: var(--txt); background: #101010; transform: translateX(3px); }
-.nav-item.active { color: var(--txt); background: var(--panel2); border-color: var(--line); }
+.rail-avatar:hover { border-color: var(--red); transform: translateY(-1px); }
+.rail-btn {
+  position: relative; width: 46px; height: 46px; border-radius: 12px;
+  display: grid; place-items: center; cursor: pointer;
+  border: 1px solid transparent; background: transparent; color: var(--dim);
+  transition: all .18s; text-decoration: none;
+}
+.rail-btn:hover { color: var(--txt); background: #101010; transform: translateY(-1px); }
+.rail-btn.active { color: var(--txt); background: var(--panel2); border-color: var(--line); }
+.rail-btn.active .nav-pill { left: -12px; top: 11px; bottom: 11px; }
 .nav-pill {
-  position: absolute; left: 5px; top: 9px; bottom: 9px; width: 3px; border-radius: 3px;
+  position: absolute; width: 3px; border-radius: 3px;
   background: var(--red); box-shadow: 0 0 10px var(--red);
 }
+.rail-btn.create { background: var(--red); border-color: #ff2b33; color: #fff; }
+.rail-btn.create:hover { filter: brightness(1.15); color: #fff; }
+.rail-btn:disabled { opacity: .5; cursor: wait; transform: none; }
+/* тултипы справа */
+.rail-btn[data-tip]:hover::after, .rail-avatar[data-tip]:hover::after {
+  content: attr(data-tip);
+  position: absolute; left: calc(100% + 12px); top: 50%; transform: translateY(-50%);
+  background: #161616; border: 1px solid var(--line); color: var(--txt);
+  font-size: 12px; padding: 6px 11px; border-radius: var(--radius-chip);
+  white-space: nowrap; z-index: 50; pointer-events: none;
+}
+.rail-avatar { position: relative; }
+.rail-ver { font-size: 10px; color: #555; font-family: var(--font-dot); }
 .nav-item .dot { width: 7px; height: 7px; border-radius: 50%; background: #333; transition: .2s; }
 .nav-item.active .dot { background: var(--red); box-shadow: 0 0 10px var(--red); animation: blink 1.6s infinite; }
 @keyframes blink { 50% { opacity: .35; } }
@@ -261,5 +285,6 @@ a.card:hover { transform: translateY(-3px); border-color: #3d3d3d; box-shadow: 0
 @media (max-width: 900px) {
   .browse { flex-direction: column; }
   .filters { width: 100%; max-height: none; position: static; }
-  .sidebar { width: 170px; }
+  .main { padding: 18px 16px 50px; }
+  .crumbs .crumb-dim, .crumbs .crumb-sep { display: none; }
 }
