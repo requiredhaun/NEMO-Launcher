@@ -12,21 +12,21 @@ export function Login() {
 
   return (
     <div>
-      <h1 className="h-dot">ACCOUNT</h1>
-      <p className="sub">offline или ely.by · сейчас: {mode} {nick}</p>
+      <h1 className="h-dot">Аккаунт</h1>
+      <p className="sub">без аккаунта — просто ник · с Ely.by — работают скины{mode === 'ely' && nick ? ` · вошёл как ${nick}` : ''}</p>
       <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))' }}>
         <div className="card">
-          <div style={{ fontFamily: 'var(--font-dot)', letterSpacing: 2, marginBottom: 10 }}>OFFLINE</div>
-          <input className="input" placeholder="Ник…" value={n} onChange={(e) => setN(e.target.value)} />
-          <button className="btn" style={{ marginTop: 10 }} onClick={() => loginOffline(n).catch((e) => setErr(e.message))}>SAVE NICK</button>
+          <div style={{ fontFamily: 'var(--font-dot)', letterSpacing: 2, marginBottom: 10 }}>БЕЗ АККАУНТА</div>
+          <input className="input" placeholder="Придумай ник…" value={n} onChange={(e) => setN(e.target.value)} />
+          <button className="btn" style={{ marginTop: 10 }} onClick={() => loginOffline(n).catch((e) => setErr(e.message))}>Сохранить</button>
         </div>
         <div className="card">
           <div style={{ fontFamily: 'var(--font-dot)', letterSpacing: 2, marginBottom: 10 }}>ELY.BY</div>
           <input className="input" placeholder="Логин…" value={login} onChange={(e) => setLogin(e.target.value)} />
           <input className="input" style={{ marginTop: 8 }} type="password" placeholder="Пароль…" value={pass} onChange={(e) => setPass(e.target.value)} />
           <div className="row" style={{ marginTop: 10 }}>
-            <button className="btn" onClick={() => loginEly(login, pass).catch((e) => setErr(e.message))}>LOGIN</button>
-            <button className="btn ghost" onClick={() => logout()}>LOGOUT</button>
+            <button className="btn" onClick={() => loginEly(login, pass).catch((e) => setErr(e.message))}>Войти</button>
+            <button className="btn ghost" onClick={() => logout()}>Выйти</button>
           </div>
         </div>
       </div>

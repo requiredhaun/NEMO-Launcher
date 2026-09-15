@@ -26,14 +26,14 @@ export function Modpacks() {
     finally { setBusy('') }
   }
 
-  if (!inst) return <div className="sub">Сначала создай инстанс</div>
+  if (!inst) return <div className="sub">Сначала создай сборку во вкладке «Библиотека»</div>
   return (
     <div>
-      <h1 className="h-dot">MODPACKS</h1>
-      <p className="sub">.mrpack → прямо в {inst.name}</p>
+      <h1 className="h-dot">Сборки</h1>
+      <p className="sub">готовые модпаки ставятся прямо в «{inst.name}»</p>
       <div className="row">
-        <input className="input" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && search()} placeholder="название сборки…" />
-        <button className="btn" onClick={search}>SEARCH</button>
+        <input className="input" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && search()} placeholder="Название сборки…" />
+        <button className="btn" onClick={search}>Найти</button>
       </div>
       <div className="grid mods" style={{ marginTop: 14 }}>
         {hits.map((h, i) => (
@@ -46,7 +46,7 @@ export function Modpacks() {
               </div>
             </div>
             <div className="sub">{h.description?.slice(0, 120)}</div>
-            <button className="btn play" style={{ padding: '10px 18px', fontSize: 13 }} disabled={busy === h.id} onClick={() => install(h.id)}>{busy === h.id ? '…' : '⤓ PACK'}</button>
+            <button className="btn play" style={{ padding: '10px 18px', fontSize: 13 }} disabled={busy === h.id} onClick={() => install(h.id)}>{busy === h.id ? 'Ставлю…' : '⤓ Установить'}</button>
           </motion.div>
         ))}
       </div>

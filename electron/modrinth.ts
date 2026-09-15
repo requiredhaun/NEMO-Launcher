@@ -1,21 +1,33 @@
 const API = 'https://api.modrinth.com/v2'
 
-export interface ModHit { id: string; slug: string; title: string; description: string; author: string; downloads: number; iconUrl?: string }
+export interface ModHit { id: string; slug: string; title: string; description: string; author: string; downloads: number; iconUrl?: string; categories: string[]; clientSide?: string; serverSide?: string }
 export interface ModVersion { id: string; version_number: string; game_versions: string[]; loaders: string[]; files: { url: string; filename: string; primary: boolean; hashes?: { sha512?: string } }[]; dependencies: { project_id?: string; dependency_type: string }[] }
 export interface PackFile { hashes: { sha512?: string; sha1?: string }; url: string; filename: string; primary: boolean; size: number }
 
-export async function searchProjects(query: string, kind: 'mod' | 'modpack', gameVersion?: string, loader?: string, offset = 0): Promise<{ total: number; hits: ModHit[] }> {
+export const MOD_CATEGORIES = [
+  'adventure', 'cursed', 'decoration', 'economy', 'equipment', 'food',
+  'game-mechanics', 'library', 'magic', 'management', 'minigame', 'mobs',
+  'optimization', 'social', 'storage', 'technology', 'transportation',
+  'utility', 'worldgen',
+] as const
+
+export async function searchProjects(query: string, kind: 'mod' | 'modpack', gameVersion?: string, loader?: string, offset = 0, categories: string[] = []): Promise<{ total: number; hits: ModHit[] }> {
   const params = new URLSearchParams({ query, limit: '24', offset: String(offset), index: 'downloads' })
-  const facets: string[] = [`project_type:${kind}`]
-  if (gameVersion) facets.push(`versions:"${gameVersion}"`)
-  if (loader && loader !== 'any' && loader !== 'vanilla') facets.push(`categories:"${loader}"`)
-  params.set('facets', JSON.stringify([facets]))
+  // каждый внутренний массив — OR, между массивами — AND
+  const facets: string[][] = [[`project_type:${kind}`]]
+  if (gameVersion) facets.push([`versions:"${gameVersion}"`])
+  if (loader && loader !== 'any' && loader !== 'vanilla') facets.push([`categories:"${loader}"`])
+  const cats = categories.filter(Boolean)
+  if (cats.length) facets.push(cats.map((c) => `categories:"${c}"`))
+  params.set('facets', JSON.stringify(facets))
   const res = await fetch(`${API}/search?${params}`, { headers: { 'User-Agent': 'NemaLauncher/0.1' } })
   if (!res.ok) throw new Error(`Modrinth: ${res.status}`)
   const j: any = await res.json()
+  const CATS = new Set<string>(MOD_CATEGORIES as unknown as string[])
   return {
     total: j.total_hits || 0,
-    hits: (j.hits || []).map((h: any) => ({ id: h.project_id, slug: h.slug, title: h.title, description: h.description, author: h.author, downloads: h.downloads, iconUrl: h.icon_url })),
+    // в поиске загрузчики подмешаны в categories — оставляем только настоящие категории
+    hits: (j.hits || []).map((h: any) => ({ id: h.project_id, slug: h.slug, title: h.title, description: h.description, author: h.author, downloads: h.downloads, iconUrl: h.icon_url, categories: ((h.categories || []) as string[]).filter((c) => CATS.has(c)), clientSide: h.client_side, serverSide: h.server_side })),
   }
 }
 

@@ -15,8 +15,8 @@ import { bindGameEvents } from './store/gameStore'
 import { useAuth } from './store/authStore'
 
 const NAV = [
-  ['/', 'PLAY'], ['/instances', 'INSTANCES'], ['/versions', 'VERSIONS'],
-  ['/mods', 'MODS'], ['/packs', 'MODPACKS'], ['/login', 'ACCOUNT'], ['/settings', 'SETTINGS'],
+  ['/', 'ИГРАТЬ'], ['/instances', 'БИБЛИОТЕКА'], ['/versions', 'ВЕРСИЯ'],
+  ['/mods', 'МОДЫ'], ['/packs', 'СБОРКИ'], ['/login', 'АККАУНТ'], ['/settings', 'НАСТРОЙКИ'],
 ]
 
 function AnimatedRoutes() {
@@ -70,7 +70,7 @@ export function App() {
                   <span className="dot" />{label}
                 </NavLink>
               ))}
-              <div style={{ marginTop: 'auto' }} className="badge">NOTHING-STYLE ● DOT 14px</div>
+              <div style={{ marginTop: 'auto' }} className="badge">NEMA v0.1</div>
             </aside>
             <main className="main">
               <AnimatedRoutes />

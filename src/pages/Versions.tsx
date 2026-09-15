@@ -56,11 +56,11 @@ export function Versions() {
     finally { setBusy(false) }
   }
 
-  if (!inst) return <div className="sub">Сначала создай инстанс</div>
+  if (!inst) return <div className="sub">Сначала создай сборку во вкладке «Библиотека»</div>
   return (
     <div>
-      <h1 className="h-dot">VERSIONS</h1>
-      <p className="sub">{inst.name} · MC {inst.mcVersion} · сейчас: {inst.versionId}</p>
+      <h1 className="h-dot">Версия</h1>
+      <p className="sub">{inst.name} · Minecraft {inst.mcVersion} · сейчас стоит: {inst.versionId}</p>
       <div className="card">
         <div className="row" style={{ flexWrap: 'wrap' }}>
           {LOADERS.map((l) => (
@@ -70,15 +70,15 @@ export function Versions() {
         {loader !== 'vanilla' && (
           <div className="row" style={{ marginTop: 12 }}>
             <select className="select" value={picked} onChange={(e) => setPicked(e.target.value)}>
-              <option value="">latest / recommended</option>
+              <option value="">последняя / рекомендуемая</option>
               {options.map((o) => <option key={o} value={o}>{o}</option>)}
             </select>
-            <button className="btn play" disabled={busy} onClick={install}>{busy ? '…' : 'INSTALL'}</button>
+            <button className="btn play" disabled={busy} onClick={install}>{busy ? 'Ставлю…' : 'Установить'}</button>
           </div>
         )}
         {loader === 'vanilla' && (
           <div className="row" style={{ marginTop: 12 }}>
-            <button className="btn play" disabled={busy} onClick={install}>{busy ? '…' : 'USE VANILLA'}</button>
+            <button className="btn play" disabled={busy} onClick={install}>{busy ? 'Ставлю…' : 'Играть без модов'}</button>
           </div>
         )}
         {busy && <div style={{ marginTop: 12 }}><GlyphLoader text="FORGING VERSION" /></div>}

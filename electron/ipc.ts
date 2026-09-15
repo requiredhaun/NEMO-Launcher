@@ -14,7 +14,7 @@ import {
 import { launchGame } from './launcher'
 import { FLAG_PRESETS } from './flags'
 import { ensureJavaRuntime, parseJavaMajor, majorForMc } from './javaRuntime'
-import { searchProjects, projectVersions, pickVersion, downloadUrl, type ModVersion } from './modrinth'
+import { searchProjects, projectVersions, pickVersion, downloadUrl, MOD_CATEGORIES, type ModVersion } from './modrinth'
 import { planDests, safeDest, writeFileChecked } from './mrpack'
 
 type Handler = (payload: any) => Promise<unknown> | unknown
@@ -247,7 +247,8 @@ const handlers: Record<string, Handler> = {
   },
   'mods:delete': (p) => { fs.unlinkSync(path.join(resolveInstance(p).gameDir, 'mods', path.basename(String(p?.name || '')))); return { ok: true } },
 
-  'modrinth:search': (p) => searchProjects(String(p?.query || ''), (p?.kind as any) || 'mod', String(p?.gameVersion || ''), String(p?.loader || ''), Number(p?.offset) || 0),
+  'modrinth:search': (p) => searchProjects(String(p?.query || ''), (p?.kind as any) || 'mod', String(p?.gameVersion || ''), String(p?.loader || ''), Number(p?.offset) || 0, (p?.categories as string[]) || []),
+  'modrinth:categories': () => [...MOD_CATEGORIES],
   'modrinth:install': async (p) => {
     const inst = resolveInstance(p)
     const vers = await projectVersions(String(p?.projectId || ''), inst.mcVersion, inst.loader === 'vanilla' ? undefined : inst.loader)

@@ -16,15 +16,15 @@ export function Instances() {
 
   return (
     <div>
-      <h1 className="h-dot">INSTANCES</h1>
-      <p className="sub">каждый инстанс — отдельная папка, версия и моды</p>
+      <h1 className="h-dot">Библиотека</h1>
+      <p className="sub">твои сборки — у каждой своя версия, загрузчик и моды</p>
       <div className="card">
         <div className="row">
-          <input className="input" placeholder="Имя инстанса…" value={name} onChange={(e) => setName(e.target.value)} />
+          <input className="input" placeholder="Название сборки…" value={name} onChange={(e) => setName(e.target.value)} />
           <select className="select" value={mc} onChange={(e) => setMc(e.target.value)} style={{ maxWidth: 180 }}>
             {manifest.map((v) => <option key={v.id} value={v.id}>{v.id}</option>)}
           </select>
-          <button className="btn" onClick={() => create(name || `Instance ${instances.length + 1}`, mc).then(() => setName(''))}>+ NEW</button>
+          <button className="btn" onClick={() => create(name || `Сборка ${instances.length + 1}`, mc).then(() => setName(''))}>+ Создать</button>
         </div>
       </div>
       <div className="grid" style={{ marginTop: 14 }}>
@@ -38,8 +38,8 @@ export function Instances() {
                   <div className="sub" style={{ margin: '4px 0 0' }}>{i.mcVersion} · {i.loader} {i.loaderVersion} · {i.versionId}</div>
                 </div>
                 <div className="row">
-                  {i.id === selectedId ? <span className="badge red">ACTIVE</span> : <button className="btn ghost" onClick={() => select(i.id)}>SELECT</button>}
-                  <button className="btn ghost" onClick={() => { if (confirm(`Удалить ${i.name}?`)) remove(i.id) }}>DEL</button>
+                  {i.id === selectedId ? <span className="badge red">ВЫБРАНА</span> : <button className="btn ghost" onClick={() => select(i.id)}>Выбрать</button>}
+                  <button className="btn ghost" onClick={() => { if (confirm(`Удалить ${i.name}?`)) remove(i.id) }}>Удалить</button>
                 </div>
               </div>
             </motion.div>

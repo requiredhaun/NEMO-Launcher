@@ -138,3 +138,36 @@ body {
 }
 .badge.red { color: #ff6b6f; border-color: var(--red); }
 .row { display: flex; gap: 12px; align-items: center; }
+
+/* каталог в стиле Modrinth Browse: фильтры слева, сетка справа */
+.browse { display: flex; gap: 16px; margin-top: 14px; align-items: flex-start; }
+.filters {
+  width: 210px; flex-shrink: 0; position: sticky; top: 0;
+  background: linear-gradient(180deg, #0d0d0d, #080808);
+  border: 1px solid var(--line); border-radius: var(--radius); padding: 14px;
+  max-height: 60vh; overflow-y: auto;
+}
+.chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+.chip {
+  font-size: 12px; padding: 6px 11px; border-radius: 99px; cursor: pointer;
+  border: 1px solid var(--line); background: #101010; color: var(--dim);
+  transition: all .16s;
+}
+.chip:hover { color: var(--txt); border-color: #444; transform: translateY(-1px); }
+.chip.on { color: #fff; border-color: var(--red); background: rgba(215,25,32,.14); box-shadow: 0 0 8px rgba(215,25,32,.25); }
+.link { background: none; border: none; color: var(--dim); cursor: pointer; font-size: 12px; text-decoration: underline; }
+.link:hover { color: var(--red); }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 2px; }
+.tag {
+  font-size: 11px; padding: 3px 9px; border-radius: 99px;
+  border: 1px solid var(--line); color: var(--dim); background: #0c0c0c;
+}
+.tag.big { font-size: 12px; padding: 5px 12px; color: var(--txt); }
+.tag.live { color: #ff6b6f; border-color: var(--red); animation: blink 1.6s infinite; }
+.card.hero { border-color: #333; background: linear-gradient(135deg, #121212 0%, #0a0a0a 60%, rgba(215,25,32,.08) 100%); }
+
+@media (max-width: 900px) {
+  .browse { flex-direction: column; }
+  .filters { width: 100%; max-height: none; position: static; }
+  .sidebar { width: 170px; }
+}
