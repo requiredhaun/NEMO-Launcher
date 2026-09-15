@@ -88,7 +88,7 @@ export function App() {
                   )}
                 </NavLink>
               ))}
-              <div style={{ marginTop: 'auto' }} className="badge">v0.1.0</div>
+              <div style={{ marginTop: 'auto' }} className="badge">v{__APP_VERSION__}</div>
             </aside>
             <main className="main">
               <AnimatedRoutes />

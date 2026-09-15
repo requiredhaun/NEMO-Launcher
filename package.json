@@ -1,7 +1,7 @@
 {
   "name": "nemo",
   "productName": "NEMO",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "NEMO — Minecraft лаунчер: сборки, моды и модпаки с Modrinth",
   "author": "Nema",
   "private": true,
@@ -9,7 +9,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "dist": "vite build && electron-builder",
+    "bump": "node scripts/bump.mjs",
+    "dist": "node scripts/bump.mjs && vite build && electron-builder",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
