@@ -59,7 +59,7 @@ export function TitleBar() {
     <div className="titlebar">
       <div className="brand">NEMO</div>
       <Crumbs />
-      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, minWidth: 0 }}>
         <RunningPill />
         <div className="win-btns">
           <button onClick={() => call('window:minimize')}>—</button>
