@@ -29,15 +29,20 @@ export async function projectVersions(projectId: string, gameVersion?: string, l
 }
 
 export function pickVersion(versions: ModVersion[], gameVersion?: string, loader?: string): ModVersion | null {
+  if (!versions.length) return null
   const norm = (l: string) => l.toLowerCase()
   const scored = versions.map((v) => {
     let score = 0
     if (gameVersion && v.game_versions.includes(gameVersion)) score += 2
-    if (loader && loader !== 'any' && v.loaders.map(norm).includes(norm(loader))) score += 2
+    if (loader && loader !== 'any' && loader !== 'vanilla' && v.loaders.map(norm).includes(norm(loader))) score += 2
     return { v, score }
   })
   scored.sort((a, b) => b.score - a.score)
-  return scored[0]?.v || null
+  const best = scored[0]
+  // нулевое совпадение = ставим заведомо чужой jar; честно отказываем, коллер уже кидает "Нет версии…"
+  const need = (gameVersion ? 2 : 0) + (loader && loader !== 'any' && loader !== 'vanilla' ? 2 : 0)
+  if (best.score < need) return null
+  return best.v
 }
 
 export async function downloadUrl(url: string): Promise<Buffer> {

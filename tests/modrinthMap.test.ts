@@ -9,7 +9,10 @@ describe('modrinth pickVersion', () => {
   it('prefers exact game+loader match', () => {
     expect(pickVersion(vs, '1.21.11', 'fabric')?.id).toBe('b')
   })
-  it('falls back when nothing matches', () => {
-    expect(pickVersion(vs, '1.19', 'quilt')?.id).toBeTruthy()
+  it('returns null instead of wrong jar when nothing matches', () => {
+    expect(pickVersion(vs, '1.19', 'quilt')).toBeNull()
+  })
+  it('returns null on empty list', () => {
+    expect(pickVersion([], '1.21.11', 'fabric')).toBeNull()
   })
 })

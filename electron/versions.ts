@@ -141,8 +141,19 @@ export async function forgePromos(): Promise<Record<string, string>> {
     byMc.get(m[1])![m[2] as 'recommended' | 'latest'] = promos[k]
   }
   const out: Record<string, string> = {}
-  for (const [mc, v] of byMc) out[mc] = v.recommended || v.latest || ''
+  for (const [mc, v] of byMc) {
+    const full = v.recommended || v.latest || ''
+    // promos отдают короткий билд ("47.2.0"), установщику нужен полный ("1.20.1-47.2.0")
+    out[mc] = full.includes('-') ? full : (full ? `${mc}-${full}` : '')
+  }
   return out
+}
+
+/** Нормализовать версию Forge к полной форме "mc-build". Экспортирована для тестов. */
+export function forgeFull(mc: string, v: string): string {
+  const t = v.trim()
+  if (!t) return ''
+  return t.includes('-') ? t : `${mc}-${t}`
 }
 
 export async function neoforgeVersions(mc: string): Promise<string[]> {

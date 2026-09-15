@@ -7,7 +7,7 @@ import { GlyphLoader } from '../components/GlyphLoader'
 
 export function Home() {
   const { instances, selectedId, refresh } = useInstances()
-  const { status, phase, progress, launching, launch } = useGame()
+  const { status, phase, progress, launching, playing, launch } = useGame()
   const { nick } = useAuth()
   const [err, setErr] = useState('')
   const inst = selectedInstance(instances, selectedId)
@@ -28,15 +28,16 @@ export function Home() {
         <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
           <div>
             <div style={{ fontFamily: 'var(--font-dot)', letterSpacing: 2, marginBottom: 8 }}>STATUS: {status}</div>
-            {(phase === 'download' || launching) && (
+            {(phase === 'download' || launching) && !playing && (
               <div style={{ width: 320 }}>
                 <div className="progress"><div style={{ width: `${Math.round(progress * 100)}%` }} /></div>
               </div>
             )}
+            {playing && <span className="badge red">● IN GAME</span>}
             {err && <div style={{ color: '#ff6b6f', marginTop: 8 }}>{err}</div>}
           </div>
-          <motion.button className="btn play" whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }} onClick={play} disabled={launching}>
-            {launching ? '●●●' : '▶ ИГРАТЬ'}
+          <motion.button className="btn play" whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }} onClick={play} disabled={launching || playing}>
+            {launching ? '●●●' : playing ? 'IN GAME' : '▶ ИГРАТЬ'}
           </motion.button>
         </div>
         {launching && <div style={{ marginTop: 14 }}><GlyphLoader text="GLYPH LINK // ЗАПУСК" /></div>}

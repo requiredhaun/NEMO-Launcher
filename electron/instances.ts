@@ -57,6 +57,12 @@ export function listInstances(userData: string): Instance[] {
   return out.sort((a, b) => b.createdAt - a.createdAt)
 }
 
-export function deleteInstance(inst: Instance): void {
+export function deleteInstance(userData: string, inst: Instance): void {
+  // guard: трём только внутри <userData>/instances, никогда произвольные пути
+  const root = path.normalize(path.join(userData, 'instances') + path.sep)
+  const target = path.normalize(inst.gameDir)
+  if (target !== path.normalize(path.join(userData, 'instances')) && !target.startsWith(root)) {
+    throw new Error('Отказ: gameDir вне папки инстансов')
+  }
   fs.rmSync(inst.gameDir, { recursive: true, force: true })
 }

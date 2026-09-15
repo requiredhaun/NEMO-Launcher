@@ -1,9 +1,37 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { app } from 'electron'
 import { Client, Authenticator } from 'minecraft-launcher-core'
 import { dashed } from './auth'
 import { buildCustomArgs } from './flags'
 import { versionType } from './versions'
+
+const ELY_AUTH = 'https://authserver.ely.by'
+
+/**
+ * authlib-injector нужен чтобы Ely.by-сессия реально работала в игре
+ * (скины + вход на серверы). Без него токен Ely бесполезен для Mojang-auth.
+ * Качаем latest с GitHub один раз в кэш; если сети нет — играем как есть.
+ */
+async function injectorArgs(gameDir: string, emit: (c: string, d: unknown) => void): Promise<string[]> {
+  try {
+    const dir = path.join(app.getPath('userData'), 'cache', 'authlib')
+    fs.mkdirSync(dir, { recursive: true })
+    const existing = fs.readdirSync(dir).find((f) => f.startsWith('authlib-injector-') && f.endsWith('.jar'))
+    let jar = existing ? path.join(dir, existing) : ''
+    if (!jar) {
+      emit('launch:status', { phase: 'download', status: 'Качаю authlib-injector для Ely.by…' })
+      const rel: any = await (await fetch('https://api.github.com/yushijinhun/authlib-injector/releases/latest')).json()
+      const asset = (rel?.assets || []).find((a: any) => String(a.name).endsWith('.jar') && !String(a.name).includes('sources'))
+      if (!asset?.browser_download_url) return []
+      jar = path.join(dir, String(asset.name))
+      fs.writeFileSync(jar, Buffer.from(await (await fetch(asset.browser_download_url)).arrayBuffer()))
+    }
+    return [`-javaagent:${jar}=${ELY_AUTH}`, '-Dauthlibinjector.mojang.apiurl=https://authserver.mojang.com']
+  } catch {
+    return []
+  }
+}
 
 function applyWindowOptions(gameDir: string, fullscreen: boolean, width: number, height: number): void {
   const file = path.join(gameDir, 'options.txt')
@@ -49,13 +77,15 @@ export async function launchGame(opts: LaunchOptions, emit: (c: string, d: unkno
     lc.on('debug', (e: any) => { if (e) emit('game:log', { level: 'debug', line: String(e) }) })
     lc.on('data', (e: any) => { if (e) emit('game:log', { level: 'info', line: String(e) }) })
     lc.on('close', (code: number) => { running = false; emit('game:closed', { code }) })
+    const customArgs = buildCustomArgs(opts.flagsPreset, opts.customFlags)
+    if (opts.auth.mode === 'ely') customArgs.unshift(...(await injectorArgs(opts.gameDir, emit)))
     await lc.launch({
       root: opts.gameDir,
       version: { number: opts.versionId, type: type || 'release' },
       authorization,
       memory: { max: String(Math.floor(opts.ramMB)), min: String(Math.min(Math.floor(opts.ramMB), 2048)) },
       javaPath: opts.javaPath || undefined,
-      customArgs: buildCustomArgs(opts.flagsPreset, opts.customFlags),
+      customArgs,
       overrides: { detached: false } as any,
     })
   } catch (e) {

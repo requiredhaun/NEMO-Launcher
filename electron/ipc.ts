@@ -8,13 +8,14 @@ import { createInstance, listInstances, deleteInstance, readInstance, writeInsta
 import { elyEnsureValid, elyLogin, elyLogout, loadSession } from './auth'
 import {
   getManifest, installedVersions, fabricLoaders, installFabric, quiltLoaders, installQuilt,
-  forgePromos, downloadForgeInstaller, downloadNeoForgeInstaller, neoforgeVersions,
-  runModdedInstaller, detectJava, getVanillaVersionJson,
+  forgePromos, forgeFull, downloadForgeInstaller, downloadNeoForgeInstaller, neoforgeVersions,
+  runModdedInstaller, detectJava,
 } from './versions'
 import { launchGame } from './launcher'
 import { FLAG_PRESETS } from './flags'
 import { ensureJavaRuntime, parseJavaMajor, majorForMc } from './javaRuntime'
 import { searchProjects, projectVersions, pickVersion, downloadUrl, type ModVersion } from './modrinth'
+import { planDests, safeDest, writeFileChecked } from './mrpack'
 
 type Handler = (payload: any) => Promise<unknown> | unknown
 
@@ -69,7 +70,13 @@ async function installModVersion(v: ModVersion, modsDir: string, installed: stri
 
 const handlers: Record<string, Handler> = {
   'config:get': () => getConfig(),
-  'config:set': (p) => updateConfig(p as Partial<LauncherConfig>),
+  'config:set': (p) => {
+    const patch = { ...(p as Partial<LauncherConfig>) }
+    if (patch.ramMB != null) patch.ramMB = Math.min(16384, Math.max(512, Math.floor(Number(patch.ramMB) || 4096)))
+    if (patch.gameWidth != null) patch.gameWidth = Math.min(7680, Math.max(320, Math.floor(Number(patch.gameWidth) || 1280)))
+    if (patch.gameHeight != null) patch.gameHeight = Math.min(4320, Math.max(240, Math.floor(Number(patch.gameHeight) || 720)))
+    return updateConfig(patch)
+  },
   'config:flagPresets': () => FLAG_PRESETS,
   'system:info': () => ({ totalRamMB: totalRamMB(), recommendedRamMB: recommendedRamMB(), platform: process.platform, userData: userData() }),
 
@@ -82,13 +89,23 @@ const handlers: Record<string, Handler> = {
   'instances:select': (p) => updateConfig({ selectedInstanceId: String(p?.id || '') }),
   'instances:remove': (p) => {
     const inst = readInstance(path.join(userData(), 'instances', String(p?.id || '')))
-    if (inst) deleteInstance(inst)
+    if (inst) deleteInstance(userData(), inst)
     return listInstances(userData())
   },
   'instances:update': (p) => {
     const inst = readInstance(path.join(userData(), 'instances', String(p?.id || '')))
     if (!inst) throw new Error('Инстанс не найден')
-    const next: Instance = { ...inst, ...(p?.patch || {}) }
+    // whitelist: id/gameDir/createdAt менять через IPC нельзя — иначе инстанс теряется
+    const patch = (p?.patch || {}) as Partial<Instance>
+    const next: Instance = {
+      ...inst,
+      ...(patch.name != null ? { name: String(patch.name).slice(0, 32) } : {}),
+      ...(patch.mcVersion != null ? { mcVersion: String(patch.mcVersion) } : {}),
+      ...(patch.loader != null ? { loader: patch.loader } : {}),
+      ...(patch.loaderVersion != null ? { loaderVersion: String(patch.loaderVersion) } : {}),
+      ...(patch.versionId != null ? { versionId: String(patch.versionId) } : {}),
+      ...(patch.ramMB != null ? { ramMB: Math.min(16384, Math.max(512, Math.floor(Number(patch.ramMB)))) } : {}),
+    }
     writeInstance(next)
     return next
   },
@@ -142,7 +159,7 @@ const handlers: Record<string, Handler> = {
       versionId = (await installQuilt(mc, lv, inst.gameDir)).id
     } else if (loader === 'forge') {
       const promos = await forgePromos()
-      const full = String(p?.full || promos[mc] || '')
+      const full = forgeFull(mc, String(p?.full || promos[mc] || ''))
       if (!full) throw new Error(`Forge для ${mc} не найден`)
       send(`Скачиваю Forge ${full}…`)
       const jar = await downloadForgeInstaller(full)
@@ -191,11 +208,16 @@ const handlers: Record<string, Handler> = {
     try { major = (await ensureVersionJson(inst.versionId, inst.gameDir))?.javaVersion?.majorVersion || major } catch { /* keep */ }
     if (!javaPath) {
       const detected = await detectJava('')
-      if (!(detected && parseJavaMajor(detected.version) === major)) {
+      const detectedMajor = detected ? parseJavaMajor(detected.version) : 0
+      // рантайму Mojang достаточно >= (кроме legacy 8, где нужен ровно 8)
+      const ok = major === 8 ? detectedMajor === 8 : detectedMajor >= major && detectedMajor > 0
+      if (detected && ok) {
+        javaPath = detected.path
+      } else {
         emit('launch:status', { phase: 'download', status: `Качаю Java ${major}…` })
         javaPath = await ensureJavaRuntime(inst.gameDir, major, (done, total, name) =>
           emit('launch:progress', { type: 'java', kind: `Java ${major}`, name, task: done, total }))
-      } else javaPath = detected.path
+      }
     }
     emit('launch:status', { phase: 'download', status: 'Загружаю файлы игры…' })
     launchGame({
@@ -244,30 +266,32 @@ const handlers: Record<string, Handler> = {
     if (!v) throw new Error('Нет сборки под этот инстанс')
     const mrpack = v.files.find((f) => f.filename.endsWith('.mrpack')) || v.files[0]
     const buf = await downloadUrl(mrpack.url)
-    const tmp = path.join(app.getPath('userData'), 'cache', mrpack.filename)
+    const tmp = path.join(app.getPath('userData'), 'cache', path.basename(mrpack.filename))
     fs.mkdirSync(path.dirname(tmp), { recursive: true })
     fs.writeFileSync(tmp, buf)
-    // распаковка mrpack — benötigen unzip; используем Node-разбор zip через dynamic import чтобы не тянуть зависимость в typecheck строго
-    const { default: AdmZip } = await import('adm-zip').catch(() => ({ default: null as any }))
-    if (!AdmZip) throw new Error('Для .mrpack нужен пакет adm-zip: npm i adm-zip')
+    const { default: AdmZip } = await import('adm-zip')
     const zip = new AdmZip(tmp)
     const indexRaw = zip.getEntry('modrinth.index.json')?.getData().toString('utf-8')
     if (!indexRaw) throw new Error('Битый .mrpack')
     const index = JSON.parse(indexRaw)
-    for (const f of index.files || []) {
-      const dest = path.join(inst.gameDir, ...(f.path || f.filename).split('/'))
-      fs.mkdirSync(path.dirname(dest), { recursive: true })
-      const envOk = !f.env || f.env.client === 'required' || f.env.client === 'optional'
-      if (envOk && f.downloads?.[0]) fs.writeFileSync(dest, await downloadUrl(f.downloads[0]))
+    const win = getMainWindow()
+    const emit = (s: string) => { if (win && !win.isDestroyed()) win.webContents.send('install:log', s) }
+    const planned = planDests(inst.gameDir, index.files || [])
+    let i = 0
+    for (const f of planned) {
+      i++
+      emit(`Файлы сборки: ${i}/${planned.length}`)
+      writeFileChecked(f.dest, await downloadUrl(f.url), f.hashes)
     }
     for (const e of zip.getEntries()) {
       if (e.entryName.startsWith('overrides/') && !e.isDirectory) {
-        const dest = path.join(inst.gameDir, e.entryName.slice('overrides/'.length))
+        // zip-slip guard и для overrides
+        const dest = safeDest(inst.gameDir, e.entryName.slice('overrides/'.length))
         fs.mkdirSync(path.dirname(dest), { recursive: true })
         fs.writeFileSync(dest, e.getData())
       }
     }
-    return { ok: true, files: (index.files || []).length }
+    return { ok: true, files: planned.length }
   },
 }
 

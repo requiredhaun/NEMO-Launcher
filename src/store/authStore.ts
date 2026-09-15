@@ -10,5 +10,5 @@ export const useAuth = create<Auth>((set) => ({
   },
   loginOffline: async (nick) => { const s = await call<any>('auth:offline', { nick }); set({ mode: s.mode, nick: s.nick }) },
   loginEly: async (login, password) => { const s = await call<any>('auth:elyLogin', { login, password }); set({ mode: s.mode, nick: s.nick }) },
-  logout: async () => { await call('auth:elyLogout'); set({ mode: 'offline' }) },
+  logout: async () => { await call('auth:elyLogout'); set({ mode: 'offline', nick: '' }) },
 }))

@@ -33,5 +33,5 @@ export const useInstances = create<S>((set, get) => ({
 }))
 
 export function selectedInstance(list: Instance[], id: string): Instance | undefined {
-  return list.find((i) => i.id === id) || list[0]
+  return list.find((i) => i.id === id)
 }
