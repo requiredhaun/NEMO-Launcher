@@ -1,7 +1,7 @@
 {
   "name": "nemo",
   "productName": "NEMO",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "NEMO — Minecraft лаунчер: сборки, моды и модпаки с Modrinth",
   "author": "Nema",
   "private": true,
@@ -27,6 +27,7 @@
     "electron": "^31.2.0",
     "electron-builder": "^24.13.3",
     "framer-motion": "^11.3.0",
+    "png-to-ico": "^3.0.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.24.0",

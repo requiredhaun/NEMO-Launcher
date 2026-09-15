@@ -7,10 +7,13 @@ files:
   - dist-electron/**/*
   - package.json
 win:
+  icon: build/icon.ico
   target:
     - nsis
     - portable
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
-  shortcutName: Nema Launcher
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
+  shortcutName: NEMO
