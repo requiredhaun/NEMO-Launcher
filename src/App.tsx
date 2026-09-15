@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { HashRouter, Routes, Route, NavLink, useLocation } from 'react-router-dom'
+import { HashRouter, Routes, Route, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import './styles/app.css'
 import { DotBackground } from './components/DotBackground'
@@ -14,6 +14,8 @@ import { Settings } from './pages/Settings'
 import { Login } from './pages/Login'
 import { bindGameEvents } from './store/gameStore'
 import { useAuth } from './store/authStore'
+import { useInstances } from './store/instancesStore'
+import { call } from './lib/ipc'
 
 const NAV = [
   ['/', 'ИГРАТЬ'], ['/instances', 'БИБЛИОТЕКА'], ['/versions', 'ВЕРСИЯ'],
@@ -39,7 +41,56 @@ function AnimatedRoutes() {
   )
 }
 
-export function App() {
+function Sidebar() {
+  const { instances, create } = useInstances()
+  const nav = useNavigate()
+  const [busy, setBusy] = useState(false)
+
+  const quickCreate = async () => {
+    if (busy) return
+    setBusy(true)
+    try {
+      let mc = '1.21.11'
+      try {
+        const m = await call<any>('versions:manifest')
+        if (m?.latest?.release) mc = m.latest.release
+      } catch { /* fallback */ }
+      await create(`Сборка ${instances.length + 1}`, mc)
+      nav('/instances')
+    } catch (e: any) {
+      alert(e.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <aside className="sidebar">
+      {NAV.map(([to, label]) => (
+        <NavLink key={to} to={to} className={({ isActive }) => 'nav-item' + (isActive ? ' active' : '')}>
+          {({ isActive }) => (
+            <>
+              <span className="dot" />{label}
+              {isActive && <motion.span layoutId="nav-pill" className="nav-pill" transition={{ type: 'spring', stiffness: 500, damping: 38 }} />}
+            </>
+          )}
+        </NavLink>
+      ))}
+      <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <motion.button
+          className="btn play" title="Новая сборка" onClick={quickCreate} disabled={busy}
+          whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.93 }}
+          style={{ padding: '10px 0', fontSize: 20 }}
+        >
+          {busy ? '…' : '+'}
+        </motion.button>
+        <div className="badge" style={{ textAlign: 'center' }}>v{__APP_VERSION__}</div>
+      </div>
+    </aside>
+  )
+}
+
+function Shell() {
   const { refresh } = useAuth()
   const [boot, setBoot] = useState(true)
   useEffect(() => {
@@ -51,51 +102,45 @@ export function App() {
   }, [])
 
   return (
+    <div className="app">
+      <TitleBar />
+      {boot ? (
+        <div style={{ flex: 1, display: 'grid', placeItems: 'center' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
+              {'NEMO'.split('').map((ch, i) => (
+                <motion.span
+                  key={i}
+                  initial={{ opacity: 0, y: 22 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.08 * i, type: 'spring', stiffness: 320, damping: 22 }}
+                  style={{ fontFamily: 'var(--font-dot)', fontSize: 46, letterSpacing: 6 }}
+                >
+                  {ch}
+                </motion.span>
+              ))}
+            </div>
+            <div className="pixel-divider" style={{ width: 180, margin: '14px auto' }} />
+            <GlyphLoader text="загрузка" />
+          </div>
+        </div>
+      ) : (
+        <div className="layout">
+          <Sidebar />
+          <main className="main">
+            <AnimatedRoutes />
+          </main>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export function App() {
+  return (
     <HashRouter>
       <DotBackground />
-      <div className="app">
-        <TitleBar />
-        {boot ? (
-          <div style={{ flex: 1, display: 'grid', placeItems: 'center' }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
-                {'NEMO'.split('').map((ch, i) => (
-                  <motion.span
-                    key={i}
-                    initial={{ opacity: 0, y: 22 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.08 * i, type: 'spring', stiffness: 320, damping: 22 }}
-                    style={{ fontFamily: 'var(--font-dot)', fontSize: 46, letterSpacing: 6 }}
-                  >
-                    {ch}
-                  </motion.span>
-                ))}
-              </div>
-              <div className="pixel-divider" style={{ width: 180, margin: '14px auto' }} />
-              <GlyphLoader text="загрузка" />
-            </div>
-          </div>
-        ) : (
-          <div className="layout">
-            <aside className="sidebar">
-              {NAV.map(([to, label]) => (
-                <NavLink key={to} to={to} className={({ isActive }) => 'nav-item' + (isActive ? ' active' : '')}>
-                  {({ isActive }) => (
-                    <>
-                      <span className="dot" />{label}
-                      {isActive && <motion.span layoutId="nav-pill" className="nav-pill" transition={{ type: 'spring', stiffness: 500, damping: 38 }} />}
-                    </>
-                  )}
-                </NavLink>
-              ))}
-              <div style={{ marginTop: 'auto' }} className="badge">v{__APP_VERSION__}</div>
-            </aside>
-            <main className="main">
-              <AnimatedRoutes />
-            </main>
-          </div>
-        )}
-      </div>
+      <Shell />
     </HashRouter>
   )
 }

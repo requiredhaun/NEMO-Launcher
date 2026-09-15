@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useInstances } from '../store/instancesStore'
+import { useGame } from '../store/gameStore'
 import { call } from '../lib/ipc'
 
 export function Instances() {
   const { instances, selectedId, refresh, create, select, remove } = useInstances()
+  const { launching, playing, launch } = useGame()
   const [name, setName] = useState('')
   const [mc, setMc] = useState('1.21.11')
   const [manifest, setManifest] = useState<any[]>([])
+  const [err, setErr] = useState('')
 
   useEffect(() => {
     refresh()
@@ -32,16 +35,24 @@ export function Instances() {
           {instances.map((i) => (
             <motion.div key={i.id} className="card" layout initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
               style={{ borderColor: i.id === selectedId ? 'var(--red)' : undefined }}>
-              <div className="row" style={{ justifyContent: 'space-between' }}>
+              <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
                 <div>
                   <div style={{ fontFamily: 'var(--font-dot)', letterSpacing: 2, fontSize: 16 }}>{i.name}</div>
                   <div className="sub" style={{ margin: '4px 0 0' }}>{i.mcVersion} · {i.loader} {i.loaderVersion} · {i.versionId}</div>
                 </div>
-                <div className="row">
+                <div className="row" style={{ flexWrap: 'wrap' }}>
+                  <button
+                    className="btn play" style={{ padding: '9px 22px', fontSize: 13 }}
+                    disabled={launching || playing}
+                    onClick={() => { setErr(''); launch(i.id).catch((e: any) => setErr(e.message)) }}
+                  >
+                    {playing && i.id === selectedId ? 'В игре' : '▶'}
+                  </button>
                   {i.id === selectedId ? <span className="badge red">ВЫБРАНА</span> : <button className="btn ghost" onClick={() => select(i.id)}>Выбрать</button>}
                   <button className="btn ghost" onClick={() => { if (confirm(`Удалить ${i.name}?`)) remove(i.id) }}>Удалить</button>
                 </div>
               </div>
+              {err && <div style={{ color: '#ff6b6f', marginTop: 8 }}>{err}</div>}
             </motion.div>
           ))}
         </AnimatePresence>

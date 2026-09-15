@@ -31,7 +31,22 @@ body {
   backdrop-filter: blur(12px);
 }
 .titlebar .brand { font-family: var(--font-dot); letter-spacing: 3px; font-size: 15px; }
-.titlebar .brand b { color: var(--red); }
+.crumbs {
+  display: flex; align-items: center; gap: 8px; margin-left: 6px;
+  font-size: 13px; color: var(--txt); white-space: nowrap; overflow: hidden;
+  -webkit-app-region: no-drag; user-select: none;
+}
+.crumb-dim { color: var(--dim); }
+.crumb-sep { color: #3a3a3a; }
+.run-pill {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; padding: 6px 14px; border-radius: 99px;
+  border: 1px solid var(--line); background: #101010; color: var(--txt);
+  -webkit-app-region: no-drag; white-space: nowrap; max-width: 260px; overflow: hidden;
+}
+.run-pill.live { border-color: var(--red); }
+.run-dot { width: 8px; height: 8px; border-radius: 50%; background: #ffb020; flex-shrink: 0; animation: blink 1.2s infinite; }
+.run-pill.live .run-dot { background: var(--red); box-shadow: 0 0 8px var(--red); }
 .win-btns { margin-left: auto; display: flex; gap: 8px; -webkit-app-region: no-drag; }
 .win-btns button {
   width: 34px; height: 26px; border: 1px solid var(--line); background: var(--panel);
@@ -62,7 +77,12 @@ body {
 .nav-item.active .dot { background: var(--red); box-shadow: 0 0 10px var(--red); animation: blink 1.6s infinite; }
 @keyframes blink { 50% { opacity: .35; } }
 
-.main { flex: 1; overflow-y: auto; padding: 26px 30px 60px; }
+.main {
+  flex: 1; overflow-y: auto; padding: 26px 30px 60px; min-width: 0;
+  background: rgba(6, 6, 6, 0.82);
+  border: 1px solid #1a1a1a; border-bottom: none; border-right: none;
+  border-top-left-radius: 16px;
+}
 .main::-webkit-scrollbar { width: 10px; }
 .main::-webkit-scrollbar-thumb { background: #222; border-radius: 8px; }
 
