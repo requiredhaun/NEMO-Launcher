@@ -1,9 +1,9 @@
 import { describe, it, expect, vi } from 'vitest'
 
-vi.mock('electron', () => ({ app: { getPath: () => '/tmp/nema-test' } }))
+vi.mock('electron', () => ({ app: { getPath: () => '/tmp/nemo-test' } }))
 
 import { forgeFull } from '../electron/versions'
-import { safeDest, verifyHash } from '../electron/mrpack'
+import { safeDest, verifyHash, pool } from '../electron/mrpack'
 
 describe('forgeFull', () => {
   it('expands short build to full mc-build', () => {
@@ -38,5 +38,24 @@ describe('mrpack verifyHash', () => {
   })
   it('skips when no hashes', () => {
     expect(() => verifyHash(Buffer.from('x'))).not.toThrow()
+  })
+})
+
+describe('pool', () => {
+  it('runs all items and keeps order', async () => {
+    const out = await pool([1, 2, 3, 4, 5], 2, async (x) => x * 10)
+    expect(out).toEqual([10, 20, 30, 40, 50])
+  })
+  it('limits concurrency', async () => {
+    let live = 0
+    let max = 0
+    await pool([1, 2, 3, 4, 5, 6], 2, async (x) => {
+      live++
+      max = Math.max(max, live)
+      await new Promise((r) => setTimeout(r, 5))
+      live--
+      return x
+    })
+    expect(max).toBeLessThanOrEqual(2)
   })
 })

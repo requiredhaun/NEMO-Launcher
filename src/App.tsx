@@ -63,8 +63,8 @@ function Sidebar() {
       } catch { /* fallback */ }
       await create(`Сборка ${instances.length + 1}`, mc)
       nav('/instances')
-    } catch (e: any) {
-      alert(e.message)
+    } catch {
+      nav('/instances')
     } finally {
       setBusy(false)
     }

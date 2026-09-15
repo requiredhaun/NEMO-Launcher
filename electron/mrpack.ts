@@ -41,3 +41,17 @@ export function writeFileChecked(dest: string, buf: Buffer, hashes?: MrpackFile[
   fs.mkdirSync(path.dirname(dest), { recursive: true })
   fs.writeFileSync(dest, buf)
 }
+
+/** Пул воркеров: качаем в N потоков вместо строгой очереди. */
+export async function pool<T, R>(items: T[], n: number, fn: (t: T, i: number) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array(items.length)
+  let i = 0
+  const workers = Array.from({ length: Math.max(1, Math.min(n, items.length)) }, async () => {
+    while (i < items.length) {
+      const k = i++
+      out[k] = await fn(items[k], k)
+    }
+  })
+  await Promise.all(workers)
+  return out
+}

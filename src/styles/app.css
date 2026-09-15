@@ -327,6 +327,22 @@ body.compact .mrow { padding: 8px 12px; }
 .icon-btn:hover { border-color: #444; color: var(--txt); transform: translateY(-1px); }
 .icon-btn.danger:hover { border-color: var(--red); color: var(--accent-soft); box-shadow: 0 0 10px color-mix(in srgb, var(--red) 25%, transparent); }
 
+/* модалка */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,.72); backdrop-filter: blur(6px);
+  display: grid; place-items: center; padding: 20px;
+}
+.modal-card {
+  width: 420px; max-width: 100%;
+  background: linear-gradient(180deg, #111, #0a0a0a);
+  border: 1px solid var(--line); border-radius: 12px; padding: 22px;
+}
+.modal-card.danger { border-top: 3px solid var(--red); }
+.modal-title { font-family: var(--font-dot); font-size: 17px; letter-spacing: 2px; }
+.btn.danger-btn { background: var(--red); border-color: var(--red); color: #fff; padding: 11px 26px; font-size: 14px; }
+.btn.danger-btn:hover { filter: brightness(1.15); }
+
 @media (max-width: 900px) {
   .browse { flex-direction: column; }
   .filters { width: 100%; max-height: none; position: static; }

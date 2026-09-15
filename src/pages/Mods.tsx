@@ -5,6 +5,7 @@ import { useInstances, selectedInstance } from '../store/instancesStore'
 import { useGame } from '../store/gameStore'
 import { catLabel } from '../lib/categories'
 import { TrashIcon, FolderIcon, GlobeIcon } from '../components/icons'
+import { ConfirmModal } from '../components/ConfirmModal'
 
 type Tab = 'content' | 'catalog' | 'files' | 'worlds' | 'logs'
 type Filter = 'all' | 'on' | 'off'
@@ -35,6 +36,7 @@ export function Mods() {
   const [filter, setFilter] = useState<Filter>('all')
   const [asc, setAsc] = useState(true)
   const [dragOver, setDragOver] = useState(false)
+  const [pendingDel, setPendingDel] = useState('')
   const dragDepth = useRef(0)
 
   // --- каталог ---
@@ -47,6 +49,7 @@ export function Mods() {
   const [cats, setCats] = useState<string[]>([])
   const [busy, setBusy] = useState('')
   const [loading, setLoading] = useState(false)
+  const [notice, setNotice] = useState('')
 
   // --- миры ---
   const [worlds, setWorlds] = useState<any[]>([])
@@ -97,9 +100,10 @@ export function Mods() {
     await call('mods:toggle', { instanceId: inst.id, file })
     await refreshMine()
   }
-  const remove = async (file: string) => {
-    if (!inst || !confirm(`Удалить ${file}?`)) return
-    await call('mods:delete', { instanceId: inst.id, file })
+  const remove = async () => {
+    if (!inst || !pendingDel) return
+    await call('mods:delete', { instanceId: inst.id, file: pendingDel })
+    setPendingDel('')
     await refreshMine()
   }
   const addFiles = async () => {
@@ -126,11 +130,16 @@ export function Mods() {
   const install = async (id: string) => {
     if (!inst) return
     setBusy(id)
-    try { await call('modrinth:install', { instanceId: inst.id, projectId: id }); await refreshMine() }
-    catch (e: any) { alert(e.message) }
+    setNotice('')
+    try { await call('modrinth:install', { instanceId: inst.id, projectId: id }); await refreshMine(); setNotice('Мод установлен') }
+    catch (e: any) { setNotice(`Ошибка: ${e.message}`) }
     finally { setBusy('') }
   }
-  const play = async () => { if (inst) { try { await launch(inst.id) } catch (e: any) { alert(e.message) } } }
+  const play = async () => {
+    if (!inst) return
+    setNotice('')
+    try { await launch(inst.id) } catch (e: any) { setNotice(`Не запустилось: ${e.message}`) }
+  }
 
   if (!inst) return <div className="sub">Сначала создай сборку во вкладке «Библиотека»</div>
   const offCount = mine.filter((m) => !m.enabled).length
@@ -143,6 +152,7 @@ export function Mods() {
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 22, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{inst.name}</div>
           <div className="sub" style={{ margin: 0 }}>{inst.loader} {inst.mcVersion} · {mine.length} модов{offCount > 0 && ` · ${offCount} выкл.`}</div>
+          {!!notice && <div className="sub" style={{ margin: '4px 0 0', color: notice.startsWith('Ошибка') || notice.startsWith('Не запустилось') ? 'var(--accent-soft)' : 'var(--txt)' }}>{notice}</div>}
         </div>
         <div style={{ marginLeft: 'auto' }}>
           <motion.button className="btn play" style={{ padding: '12px 34px' }} whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }} onClick={play} disabled={launching || playing}>
@@ -196,7 +206,7 @@ export function Mods() {
                 <span className="mfile">{m.file}</span>
                 <span className="mactions">
                   <button className={'switch' + (m.enabled ? ' on' : '')} title={m.enabled ? 'Выключить' : 'Включить'} onClick={() => toggle(m.file)} />
-                  <button className="icon-btn danger" title="Удалить мод" onClick={() => remove(m.file)}><TrashIcon /></button>
+                  <button className="icon-btn danger" title="Удалить мод" onClick={() => setPendingDel(m.file)}><TrashIcon /></button>
                 </span>
               </div>
             ))}
@@ -310,6 +320,15 @@ export function Mods() {
           </div>
         </div>
       )}
+      <ConfirmModal
+        open={!!pendingDel}
+        title="Удалить мод?"
+        text={`«${pendingDel}» будет удалён из «${inst.name}». Это действие нельзя отменить.`}
+        okLabel="Удалить"
+        danger
+        onOk={remove}
+        onCancel={() => setPendingDel('')}
+      />
     </div>
   )
 }

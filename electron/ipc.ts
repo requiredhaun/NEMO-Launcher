@@ -15,7 +15,7 @@ import { launchGame } from './launcher'
 import { FLAG_PRESETS } from './flags'
 import { ensureJavaRuntime, parseJavaMajor, majorForMc } from './javaRuntime'
 import { searchProjects, projectVersions, pickVersion, downloadUrl, MOD_CATEGORIES, type ModVersion } from './modrinth'
-import { planDests, safeDest, writeFileChecked } from './mrpack'
+import { planDests, safeDest, writeFileChecked, pool } from './mrpack'
 import { listMods, toggleMod, deleteMod, addModFile, listWorlds } from './mods'
 import { rpcIdle, rpcLaunching, rpcPlaying, rpcClear } from './rpc'
 
@@ -334,12 +334,13 @@ const handlers: Record<string, Handler> = {
     const win = getMainWindow()
     const emit = (s: string) => { if (win && !win.isDestroyed()) win.webContents.send('install:log', s) }
     const planned = planDests(inst.gameDir, index.files || [])
-    let i = 0
-    for (const f of planned) {
-      i++
-      emit(`Файлы сборки: ${i}/${planned.length}`)
+    let done = 0
+    emit(`Файлов сборки: ${planned.length} — качаю…`)
+    await pool(planned, 6, async (f) => {
       writeFileChecked(f.dest, await downloadUrl(f.url), f.hashes)
-    }
+      done++
+      if (done % 5 === 0 || done === planned.length) emit(`Файлы сборки: ${done}/${planned.length}`)
+    })
     for (const e of zip.getEntries()) {
       if (e.entryName.startsWith('overrides/') && !e.isDirectory) {
         // zip-slip guard и для overrides
