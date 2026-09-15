@@ -3,7 +3,7 @@ import path from 'node:path'
 import { getConfig, updateConfig } from './settings'
 import { registerIpc } from './ipc'
 
-app.setPath('userData', path.join(app.getPath('appData'), 'nema-launcher'))
+app.setPath('userData', process.env.NEMO_USER_DATA || path.join(app.getPath('appData'), 'nema-launcher'))
 
 const gotLock = app.requestSingleInstanceLock()
 if (!gotLock) app.quit()
