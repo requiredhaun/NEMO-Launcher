@@ -16,7 +16,7 @@ import { bindGameEvents } from './store/gameStore'
 import { useAuth } from './store/authStore'
 import { useInstances } from './store/instancesStore'
 import { call } from './lib/ipc'
-import { PlayIcon, LibraryIcon, TagIcon, CompassIcon, BoxIcon, SlidersIcon, PlusIcon } from './components/icons'
+import { PlayIcon, LibraryIcon, TagIcon, CompassIcon, BoxIcon, SlidersIcon, PlusIcon, UserIcon } from './components/icons'
 
 const NAV: { to: string; label: string; Icon: (p: { size?: number }) => JSX.Element }[] = [
   { to: '/', label: 'Играть', Icon: PlayIcon },
@@ -71,8 +71,8 @@ function Sidebar() {
 
   return (
     <aside className="rail">
-      <button className="rail-avatar" title={nick ? `${nick} — аккаунт` : 'Аккаунт'} onClick={() => nav('/login')}>
-        {(nick || '?').slice(0, 1).toUpperCase()}
+      <button className="rail-avatar" title={nick ? `${nick} — аккаунт` : 'Войти — аккаунт'} onClick={() => nav('/login')}>
+        {nick ? nick.slice(0, 1).toUpperCase() : <UserIcon size={20} />}
       </button>
       <div className="rail-group">
         {NAV.map(({ to, label, Icon }) => (
