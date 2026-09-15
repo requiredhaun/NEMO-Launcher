@@ -75,7 +75,7 @@ export function Home() {
           ['/packs', 'Сборки', 'готовые модпаки в один клик'],
           ['/settings', 'Настройки', 'память, Java, окно игры'],
         ].map(([to, t, d], i) => (
-          <motion.div key={to} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 * i }}>
+          <motion.div key={to} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} whileHover={{ y: -4 }} transition={{ delay: 0.08 * i }}>
             <Link to={to} className="card" style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}>
               <div style={{ fontFamily: 'var(--font-dot)', letterSpacing: 2 }}>{t}</div>
               <div className="sub" style={{ margin: '6px 0 0' }}>{d}</div>

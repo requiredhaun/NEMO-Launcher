@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 
-export function GlyphLoader({ text = 'LOADING' }: { text?: string }) {
+export function GlyphLoader({ text = 'загрузка' }: { text?: string }) {
   const bars = [0, 1, 2, 3, 4, 5, 6, 7]
   return (
     <div className="row" style={{ gap: 14 }}>

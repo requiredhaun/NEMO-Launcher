@@ -1,8 +1,8 @@
 {
-  "name": "nema-launcher",
-  "productName": "Nema Launcher",
+  "name": "nemo",
+  "productName": "NEMO",
   "version": "0.1.0",
-  "description": "Nema Launcher — Minecraft лаунчер в эстетике Nothing: dot-matrix, монохром, glyph-анимации",
+  "description": "NEMO — Minecraft лаунчер: сборки, моды и модпаки с Modrinth",
   "author": "Nema",
   "private": true,
   "main": "dist-electron/main.js",

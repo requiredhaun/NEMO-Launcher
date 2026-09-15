@@ -1,6 +1,6 @@
-# Nema Launcher
+# NEMO
 
-Nothing-style Minecraft лаунчер: dot-matrix сетка, глиф-анимации, монохром + red accent.
+Minecraft лаунчер: сборки с isolate-папками, все загрузчики, каталог модов и сборок с Modrinth.
 
 ## dev
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { call } from '../lib/ipc'
 import { useInstances, selectedInstance } from '../store/instancesStore'
 import { catLabel } from '../lib/categories'
@@ -84,10 +84,17 @@ export function Mods() {
           {!!cats.length && <div className="sub" style={{ margin: '8px 0 0' }}>выбрано: {cats.length}</div>}
         </aside>
         <div className="grid mods" style={{ flex: 1 }}>
-          {loading && !hits.length && <div className="sub">Ищу…</div>}
+          {loading && !hits.length && (
+            <>
+              {[0, 1, 2, 3, 4, 5].map((i) => <div key={i} className="skel" />)}
+            </>
+          )}
           {!loading && !hits.length && <div className="sub">Ничего не нашлось — попробуй другой запрос или убери категории</div>}
+          <AnimatePresence mode="popLayout">
           {hits.map((h, i) => (
-            <motion.div key={h.id} className="card" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.03, 0.4) }}>
+            <motion.div key={h.id} className="card" layout
+              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.94 }}
+              transition={{ delay: Math.min(i * 0.02, 0.3) }}>
               <div className="row">
                 {h.iconUrl && <img src={h.iconUrl} width={44} height={44} style={{ borderRadius: 10 }} loading="lazy" />}
                 <div style={{ minWidth: 0 }}>
@@ -106,6 +113,7 @@ export function Mods() {
               </button>
             </motion.div>
           ))}
+          </AnimatePresence>
         </div>
       </div>
       <div className="pixel-divider" />

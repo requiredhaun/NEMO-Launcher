@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import './styles/app.css'
 import { DotBackground } from './components/DotBackground'
 import { TitleBar } from './components/TitleBar'
+import { GlyphLoader } from './components/GlyphLoader'
 import { Home } from './pages/Home'
 import { Instances } from './pages/Instances'
 import { Versions } from './pages/Versions'
@@ -56,21 +57,38 @@ export function App() {
         <TitleBar />
         {boot ? (
           <div style={{ flex: 1, display: 'grid', placeItems: 'center' }}>
-            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
-              <div style={{ fontFamily: 'var(--font-dot)', fontSize: 42, letterSpacing: 8 }}>NEMA<b style={{ color: 'var(--red)' }}>●</b></div>
-              <div className="pixel-divider" />
-              <div style={{ fontFamily: 'var(--font-dot)', letterSpacing: 4, color: 'var(--dim)', fontSize: 12 }}>GLYPH BOOT SEQUENCE</div>
-            </motion.div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
+                {'NEMO'.split('').map((ch, i) => (
+                  <motion.span
+                    key={i}
+                    initial={{ opacity: 0, y: 22 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.08 * i, type: 'spring', stiffness: 320, damping: 22 }}
+                    style={{ fontFamily: 'var(--font-dot)', fontSize: 46, letterSpacing: 6 }}
+                  >
+                    {ch}
+                  </motion.span>
+                ))}
+              </div>
+              <div className="pixel-divider" style={{ width: 180, margin: '14px auto' }} />
+              <GlyphLoader text="загрузка" />
+            </div>
           </div>
         ) : (
           <div className="layout">
             <aside className="sidebar">
               {NAV.map(([to, label]) => (
                 <NavLink key={to} to={to} className={({ isActive }) => 'nav-item' + (isActive ? ' active' : '')}>
-                  <span className="dot" />{label}
+                  {({ isActive }) => (
+                    <>
+                      <span className="dot" />{label}
+                      {isActive && <motion.span layoutId="nav-pill" className="nav-pill" transition={{ type: 'spring', stiffness: 500, damping: 38 }} />}
+                    </>
+                  )}
                 </NavLink>
               ))}
-              <div style={{ marginTop: 'auto' }} className="badge">NEMA v0.1</div>
+              <div style={{ marginTop: 'auto' }} className="badge">v0.1.0</div>
             </aside>
             <main className="main">
               <AnimatedRoutes />

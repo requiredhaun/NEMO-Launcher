@@ -3,7 +3,13 @@ import { call } from '../lib/ipc'
 import { useInstances, selectedInstance } from '../store/instancesStore'
 import { GlyphLoader } from '../components/GlyphLoader'
 
-const LOADERS = ['vanilla', 'fabric', 'quilt', 'forge', 'neoforge']
+const LOADERS: { id: string; label: string }[] = [
+  { id: 'vanilla', label: 'Без модов' },
+  { id: 'fabric', label: 'Fabric' },
+  { id: 'quilt', label: 'Quilt' },
+  { id: 'forge', label: 'Forge' },
+  { id: 'neoforge', label: 'NeoForge' },
+]
 
 export function Versions() {
   const { instances, selectedId, refresh } = useInstances()
@@ -64,7 +70,7 @@ export function Versions() {
       <div className="card">
         <div className="row" style={{ flexWrap: 'wrap' }}>
           {LOADERS.map((l) => (
-            <button key={l} className="btn" style={loader === l ? { borderColor: 'var(--red)', color: '#ff6b6f' } : {}} onClick={() => { setLoaderTouched(true); setLoader(l) }}>{l}</button>
+            <button key={l.id} className="btn" style={loader === l.id ? { borderColor: 'var(--red)', color: '#ff6b6f' } : {}} onClick={() => { setLoaderTouched(true); setLoader(l.id) }}>{l.label}</button>
           ))}
         </div>
         {loader !== 'vanilla' && (
@@ -81,7 +87,7 @@ export function Versions() {
             <button className="btn play" disabled={busy} onClick={install}>{busy ? 'Ставлю…' : 'Играть без модов'}</button>
           </div>
         )}
-        {busy && <div style={{ marginTop: 12 }}><GlyphLoader text="FORGING VERSION" /></div>}
+        {busy && <div style={{ marginTop: 12 }}><GlyphLoader text="Ставлю версию…" /></div>}
       </div>
       {!!log.length && <div className="log" style={{ marginTop: 12 }}>{log.join('\n')}</div>}
     </div>

@@ -25,9 +25,10 @@ export function Login() {
           <input className="input" placeholder="Логин…" value={login} onChange={(e) => setLogin(e.target.value)} />
           <input className="input" style={{ marginTop: 8 }} type="password" placeholder="Пароль…" value={pass} onChange={(e) => setPass(e.target.value)} />
           <div className="row" style={{ marginTop: 10 }}>
-            <button className="btn" onClick={() => loginEly(login, pass).catch((e) => setErr(e.message))}>Войти</button>
+            <button className="btn" onClick={() => { setErr(''); loginEly(login, pass).catch((e) => setErr(e.message)) }}>Войти</button>
             <button className="btn ghost" onClick={() => logout()}>Выйти</button>
           </div>
+          <button className="link" style={{ marginTop: 10 }} onClick={() => call('paths:openElyReg')}>Нет аккаунта? Зарегистрироваться на ely.by</button>
         </div>
       </div>
       {err && <div style={{ color: '#ff6b6f', marginTop: 10 }}>{err}</div>}
