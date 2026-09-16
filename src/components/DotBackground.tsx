@@ -40,7 +40,12 @@ export function DotBackground() {
     addEventListener('click', onClick)
     let t = 0
     const GAP = 22
+    const dotBase = (): string => {
+      if (document.body.classList.contains('light')) return '20,20,20'
+      return '255,255,255'
+    }
     const paint = (sweepX: number | null) => {
+      const base = dotBase()
       ctx.clearRect(0, 0, canvas.width, canvas.height)
       for (let y = GAP / 2; y < canvas.height; y += GAP) {
         for (let x = GAP / 2; x < canvas.width; x += GAP) {
@@ -57,7 +62,7 @@ export function DotBackground() {
           }
           if (sweepX != null && Math.abs(x - sweepX) < 40 && y < canvas.height * 0.35) { alpha = Math.max(alpha, 0.5); }
           ctx.beginPath()
-          ctx.fillStyle = hot ? `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${alpha})` : 'rgba(255,255,255,' + alpha * 0.55 + ')'
+          ctx.fillStyle = hot ? `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${alpha})` : `rgba(${base},${alpha * 0.55})`
           ctx.arc(x, y, r, 0, Math.PI * 2)
           ctx.fill()
         }

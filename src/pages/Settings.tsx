@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { call } from '../lib/ipc'
-import { ACCENTS, THEME_PRESETS, presetMatches, applyTheme, type Theme } from '../lib/theme'
+import { ACCENTS, applyTheme, type Theme } from '../lib/theme'
 
 export function Settings() {
   const [cfg, setCfg] = useState<any>(null)
@@ -23,7 +23,7 @@ export function Settings() {
   }
   const setTheme = (patch: Partial<Theme>) => set({ theme: { ...theme, ...patch } })
   if (!cfg) return <div className="sub">…</div>
-  const theme: Theme = { accent: 'red', dots: true, glow: true, animations: true, dotFont: true, compact: false, ...(cfg.theme || {}) }
+  const theme: Theme = { mode: 'dark', accent: 'red', dots: true, glow: true, animations: true, dotFont: true, compact: false, ...(cfg.theme || {}) }
 
   return (
     <div>
@@ -63,15 +63,14 @@ export function Settings() {
         </div>
         <div className="card">
           <div style={{ fontFamily: 'var(--font-dot)', letterSpacing: 2 }}>ДИЗАЙН ЛАУНЧЕРА</div>
-          <div className="sub" style={{ margin: '6px 0 0' }}>Готовые темы</div>
-          <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', marginTop: 8 }}>
-            {THEME_PRESETS.map((p) => (
+          <div className="sub" style={{ margin: '6px 0 0' }}>Тема</div>
+          <div className="row" style={{ marginTop: 8 }}>
+            {([['dark', 'Тёмная'], ['light', 'Светлая']] as const).map(([v, l]) => (
               <button
-                key={p.id} className="card" style={{ cursor: 'pointer', textAlign: 'left', padding: 12, borderColor: presetMatches(p, theme) ? 'var(--red)' : undefined }}
-                onClick={() => setTheme({ ...p.theme })}
+                key={v} className="btn" style={theme.mode === v ? { borderColor: 'var(--red)', color: 'var(--accent-soft)' } : {}}
+                onClick={() => setTheme({ mode: v })}
               >
-                <div style={{ fontFamily: 'var(--font-dot)', letterSpacing: 1, fontSize: 13 }}>{p.label}</div>
-                <div className="sub" style={{ margin: '4px 0 0' }}>{p.sub}</div>
+                {l}
               </button>
             ))}
           </div>

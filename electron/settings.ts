@@ -9,6 +9,7 @@ export type AuthMode = 'offline' | 'ely'
 export type Accent = 'red' | 'green' | 'purple' | 'blue' | 'orange' | 'white'
 
 export interface ThemeConfig {
+  mode: 'dark' | 'light'
   accent: Accent
   dots: boolean
   glow: boolean
@@ -42,7 +43,7 @@ export function defaultGameDir(): string {
 }
 
 export function defaultTheme(): ThemeConfig {
-  return { accent: 'red', dots: true, glow: true, animations: true, dotFont: true, compact: false }
+  return { mode: 'dark', accent: 'red', dots: true, glow: true, animations: true, dotFont: true, compact: false }
 }
 
 function defaults(): LauncherConfig {

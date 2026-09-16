@@ -19,12 +19,13 @@ export function getMainWindow(): BrowserWindow | null { return win }
 
 function createWindow(): void {
   const cfg = getConfig()
+  const light = getConfig().theme?.mode === 'light'
   win = new BrowserWindow({
     width: cfg.windowBounds?.width || 1240,
     height: cfg.windowBounds?.height || 780,
     minWidth: 960, minHeight: 620,
     frame: false, resizable: true,
-    backgroundColor: '#000000', show: false,
+    backgroundColor: light ? '#eef0f3' : '#000000', show: false,
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false },
   })
   Menu.setApplicationMenu(null)
