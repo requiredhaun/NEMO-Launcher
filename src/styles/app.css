@@ -20,6 +20,8 @@
   --rail: rgba(5,5,5,.6);
   --mainbg: rgba(6,6,6,.82);
   --scroll: #2c2c2c;
+  --btn-bg: #141414;
+  --btn-txt: #ffffff;
   --radius: 8px;
   --radius-btn: 6px;
   --radius-chip: 7px;
@@ -44,6 +46,8 @@ body.light {
   --rail: rgba(255,255,255,.6);
   --mainbg: rgba(255,255,255,.88);
   --scroll: #bcc4cd;
+  --btn-bg: #ffffff;
+  --btn-txt: #151515;
 }
 
 * { box-sizing: border-box; }
@@ -109,9 +113,9 @@ body {
 .rail-avatar {
   width: 42px; height: 42px; border-radius: 12px; cursor: pointer;
   display: grid; place-items: center;
-  font-family: var(--font-dot); font-size: 19px; color: #fff;
-  background: radial-gradient(#3a3a3a 1px, transparent 1.4px), #161616;
-  background-size: 8px 8px; border: 1px solid #333; transition: all .18s;
+  font-family: var(--font-dot); font-size: 19px; color: var(--txt);
+  background: radial-gradient(color-mix(in srgb, var(--dim) 60%, transparent) 1px, transparent 1.4px), var(--well);
+  background-size: 8px 8px; border: 1px solid var(--line); transition: all .18s;
 }
 .rail-avatar:hover { border-color: var(--red); transform: translateY(-1px); }
 .rail-btn {
@@ -164,10 +168,10 @@ body {
 a.card:hover { transform: translateY(-3px); border-color: var(--dim); box-shadow: 0 10px 28px rgba(0,0,0,.35); }
 .btn {
   font-family: var(--font-dot); letter-spacing: 2px; cursor: pointer;
-  border: 1px solid #141414; background: #141414; color: #fff;
+  border: 1px solid var(--line); background: var(--btn-bg); color: var(--btn-txt);
   padding: 12px 22px; border-radius: var(--radius-btn); transition: all .2s; position: relative; overflow: hidden;
 }
-.btn:hover { transform: translateY(-2px); filter: brightness(1.25); box-shadow: 0 8px 24px rgba(0,0,0,.35); }
+.btn:hover { transform: translateY(-2px); border-color: var(--dim); box-shadow: 0 8px 24px rgba(0,0,0,.35); }
 .btn:active { transform: translateY(0) scale(.98); }
 .btn.play {
   background: var(--red); border-color: var(--red); color: var(--on-accent);
@@ -298,10 +302,10 @@ body.compact .mrow { padding: 8px 12px; }
 .inst-avatar {
   width: 56px; height: 56px; border-radius: 14px; flex-shrink: 0;
   display: grid; place-items: center;
-  font-family: var(--font-dot); font-size: 26px; color: #fff;
-  background: radial-gradient(#3a3a3a 1px, transparent 1.4px), #161616;
+  font-family: var(--font-dot); font-size: 26px; color: var(--txt);
+  background: radial-gradient(color-mix(in srgb, var(--dim) 60%, transparent) 1px, transparent 1.4px), var(--well);
   background-size: 8px 8px;
-  border: 1px solid #333;
+  border: 1px solid var(--line);
 }
 .subtabs { display: flex; gap: 8px; margin: 16px 0; flex-wrap: wrap; }
 .subtab {
