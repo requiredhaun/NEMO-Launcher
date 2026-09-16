@@ -17,6 +17,7 @@ import { useAuth } from './store/authStore'
 import { useInstances } from './store/instancesStore'
 import { call } from './lib/ipc'
 import { t, useLang, setLang } from './lib/i18n'
+import { useAvatar } from './lib/avatar'
 import { applyTheme } from './lib/theme'
 import { PlayIcon, LibraryIcon, TagIcon, CompassIcon, BoxIcon, SlidersIcon, PlusIcon, UserIcon } from './components/icons'
 
@@ -51,6 +52,7 @@ function Sidebar() {
   useLang()
   const { instances, create } = useInstances()
   const { nick } = useAuth()
+  const avatar = useAvatar(nick)
   const nav = useNavigate()
   const [busy, setBusy] = useState(false)
 
@@ -75,7 +77,7 @@ function Sidebar() {
   return (
     <aside className="rail">
       <button className="rail-avatar" title={nick ? t('app.account_named', { nick }) : t('app.account_login')} onClick={() => nav('/login')}>
-        {nick ? nick.slice(0, 1).toUpperCase() : <UserIcon size={20} />}
+        {nick && avatar ? <img src={avatar} alt={nick} /> : (nick ? nick.slice(0, 1).toUpperCase() : <UserIcon size={20} />)}
       </button>
       <div className="rail-group">
         {NAV.map(({ to, key, Icon }) => (
