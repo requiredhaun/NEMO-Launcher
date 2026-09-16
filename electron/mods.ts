@@ -2,6 +2,24 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 export interface LocalMod { name: string; file: string; size: number; enabled: boolean }
+export interface ContentFile { name: string; size: number }
+
+const ARCHIVE_EXTS = ['.zip', '.jar']
+
+/** Файлы контент-папки (шейдеры, текстурпаки): только архивы. */
+export function listContent(gameDir: string, sub: string): ContentFile[] {
+  const dir = path.join(gameDir, path.basename(sub))
+  try {
+    return fs.readdirSync(dir)
+      .filter((f) => ARCHIVE_EXTS.some((e) => f.toLowerCase().endsWith(e)))
+      .map((f) => ({ name: f, size: fs.statSync(path.join(dir, f)).size }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'ru'))
+  } catch { return [] }
+}
+
+export function deleteContent(gameDir: string, sub: string, file: string): void {
+  fs.unlinkSync(path.join(gameDir, path.basename(sub), path.basename(file)))
+}
 export interface WorldInfo { name: string; size: number; mtime: number }
 
 const JAR = '.jar'

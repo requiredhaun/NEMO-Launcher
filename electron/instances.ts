@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
+import { ensureSharedDirs } from './versions'
 
 export type Loader = 'vanilla' | 'fabric' | 'forge' | 'neoforge' | 'quilt'
 
@@ -42,6 +43,9 @@ export function createInstance(userData: string, name: string, mcVersion: string
     gameDir: instanceDir(userData, id), createdAt: Date.now(),
   }
   writeInstance(inst)
+  try {
+    ensureSharedDirs(userData, inst.gameDir)
+  } catch { /* создастся при запуске */ }
   return inst
 }
 

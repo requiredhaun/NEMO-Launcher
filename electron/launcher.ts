@@ -5,7 +5,7 @@ import { app } from 'electron'
 import { Client, Authenticator } from 'minecraft-launcher-core'
 import { dashed } from './auth'
 import { buildCustomArgs } from './flags'
-import { versionType, mergeInherits, verifyClientJar, jvmArgsFromJson } from './versions'
+import { versionType, mergeInherits, verifyClientJar, jvmArgsFromJson, ensureSharedDirs } from './versions'
 
 const ELY_AUTH = 'https://authserver.ely.by'
 
@@ -142,6 +142,12 @@ export async function launchGame(opts: LaunchOptions, emit: (c: string, d: unkno
   const alive = () => seq > deadSeq
   running = true
   currentDir = opts.gameDir
+  // общие assets/libraries на все сборки — иначе каждая качает ~500МБ заново
+  try {
+    ensureSharedDirs(app.getPath('userData'), opts.gameDir)
+  } catch (e: any) {
+    emit('launch:status', { phase: 'download', status: `Не смог расшарить кэш: ${e?.message || e}` })
+  }
   // сторож: MLC висит молча при оборванном соединении — подсказываем, а не врём про прогресс
   let lastEv = Date.now()
   const ev = (c: string, d: unknown) => {

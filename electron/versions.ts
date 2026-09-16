@@ -350,6 +350,39 @@ export function jvmArgsFromJson(json: any, ctx: JvmCtx): string[] {
 }
 
 /**
+ * Общие assets/libraries на все сборки (как у Theseus/AstralRinth):
+ * иначе каждая сборка заново качает ~500МБ. Реализация — junction'ы,
+ * MLC их не замечает. Реальные папки с данными не трогаем.
+ */
+export const SHARED_DIRS = ['assets', 'libraries'] as const
+
+export function sharedDir(userData: string, name: string): string {
+  return path.join(userData, 'shared', name)
+}
+
+export function ensureSharedDirs(userData: string, gameDir: string): void {
+  for (const name of SHARED_DIRS) {
+    const target = sharedDir(userData, name)
+    fs.mkdirSync(target, { recursive: true })
+    const link = path.join(gameDir, name)
+    try {
+      const st = fs.lstatSync(link)
+      if (st.isSymbolicLink()) {
+        try {
+          if (fs.realpathSync(link) === fs.realpathSync(target)) continue
+        } catch { /* битая ссылка — пересоздаём */ }
+        fs.unlinkSync(link)
+      } else {
+        continue // реальная папка с данными — не трогаем
+      }
+    } catch { /* нет — создаём */ }
+    fs.mkdirSync(gameDir, { recursive: true })
+    if (process.platform === 'win32') fs.symlinkSync(target, link, 'junction')
+    else fs.symlinkSync(target, link, 'dir')
+  }
+}
+
+/**
  * Установщики Forge/NeoForge отказываются работать в пустой папке:
  * "There is no minecraft launcher profile ... run the launcher first!"
  * Создаём минимальный launcher_profiles.json, как делает Theseus.

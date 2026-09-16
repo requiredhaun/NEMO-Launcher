@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { call } from '../lib/ipc'
-import { ACCENTS, applyTheme, type Theme } from '../lib/theme'
+import { ACCENTS, THEME_PRESETS, presetMatches, applyTheme, type Theme } from '../lib/theme'
 
 export function Settings() {
   const [cfg, setCfg] = useState<any>(null)
@@ -63,6 +63,18 @@ export function Settings() {
         </div>
         <div className="card">
           <div style={{ fontFamily: 'var(--font-dot)', letterSpacing: 2 }}>ДИЗАЙН ЛАУНЧЕРА</div>
+          <div className="sub" style={{ margin: '6px 0 0' }}>Готовые темы</div>
+          <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', marginTop: 8 }}>
+            {THEME_PRESETS.map((p) => (
+              <button
+                key={p.id} className="card" style={{ cursor: 'pointer', textAlign: 'left', padding: 12, borderColor: presetMatches(p, theme) ? 'var(--red)' : undefined }}
+                onClick={() => setTheme({ ...p.theme })}
+              >
+                <div style={{ fontFamily: 'var(--font-dot)', letterSpacing: 1, fontSize: 13 }}>{p.label}</div>
+                <div className="sub" style={{ margin: '4px 0 0' }}>{p.sub}</div>
+              </button>
+            ))}
+          </div>
           <div className="sub" style={{ margin: '6px 0 0' }}>Акцентный цвет</div>
           <div className="swatches">
             {Object.entries(ACCENTS).map(([id, a]) => (
@@ -106,21 +118,10 @@ export function Settings() {
             />
           </div>
           {cfg.discordRpc && (
-            <>
-              <input
-                className="input" style={{ marginTop: 8 }} value={cfg.discordClientId || ''}
-                onChange={(e) => set({ discordClientId: e.target.value })}
-                placeholder="Application ID (только цифры)…"
-              />
-              <div className="sub" style={{ margin: '10px 0 0', lineHeight: 1.7 }}>
-                Как получить ID:<br />
-                1. <button className="link" onClick={() => call('paths:openUrl', { url: 'https://discord.com/developers/applications' })}>Открой портал разработчиков</button> и нажми New Application<br />
-                2. Назови как хочешь (например NEMO), нажми Create<br />
-                3. Скопируй <b>Application ID</b> в самом верху страницы и вставь сюда<br />
-                4. Чтобы вместо «?» была иконка: General Information → App Icon → загрузи файл build/icon.png из папки лаунчера<br />
-                5. По желанию: Rich Presence → Art Assets → Add Image → загрузи ту же картинку с именем <b>nemo</b> — тогда будет большая обложка
-              </div>
-            </>
+            <div className="sub" style={{ margin: '8px 0 0', lineHeight: 1.7 }}>
+              Статус идёт через встроенный ID приложения NEMO — ничего вбивать не надо.<br />
+              Чтобы вместо «?» была иконка: загрузи <b>build/icon.png</b> из папки лаунчера в App Icon своего Discord-приложения.
+            </div>
           )}
         </div>
       </div>

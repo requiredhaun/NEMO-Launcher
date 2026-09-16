@@ -72,7 +72,9 @@ export function getConfig(): LauncherConfig {
   try {
     const raw = fs.readFileSync(file(), 'utf-8')
     const parsed = JSON.parse(raw) as Partial<LauncherConfig>
-    return { ...defaults(), ...parsed, theme: { ...defaultTheme(), ...(parsed.theme || {}) } }
+    const cfg = { ...defaults(), ...parsed, theme: { ...defaultTheme(), ...(parsed.theme || {}) } }
+    if (!cfg.discordClientId?.trim()) cfg.discordClientId = defaults().discordClientId
+    return cfg
   } catch {
     return defaults()
   }

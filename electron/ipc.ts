@@ -14,9 +14,9 @@ import {
 import { launchGame } from './launcher'
 import { FLAG_PRESETS } from './flags'
 import { ensureJavaRuntime, parseJavaMajor, majorForMc } from './javaRuntime'
-import { searchProjects, projectVersions, pickVersion, downloadUrl, MOD_CATEGORIES, type ModVersion } from './modrinth'
+import { searchProjects, projectVersions, pickVersion, downloadUrl, MOD_CATEGORIES, contentSubdir, type ModVersion } from './modrinth'
 import { planDests, safeDest, writeFileChecked, pool } from './mrpack'
-import { listMods, toggleMod, deleteMod, addModFile, listWorlds } from './mods'
+import { listMods, toggleMod, deleteMod, addModFile, listWorlds, listContent, deleteContent } from './mods'
 import { rpcIdle, rpcLaunching, rpcPlaying, rpcClear } from './rpc'
 import { requestLaunchCancel, currentGameDir, killGameProcesses } from './launcher'
 import { cancelInstaller } from './versions'
@@ -70,7 +70,7 @@ async function ensureVersionJson(versionId: string, gameDir: string): Promise<an
   return json
 }
 
-async function installModVersion(v: ModVersion, modsDir: string, installed: string[], visited: Set<string>): Promise<void> {
+async function installModVersion(v: ModVersion, modsDir: string, installed: string[], visited: Set<string>, depDir?: string): Promise<void> {
   if (visited.has(v.id)) return
   visited.add(v.id)
   const file = v.files.find((f) => f.primary) || v.files[0]
@@ -80,12 +80,15 @@ async function installModVersion(v: ModVersion, modsDir: string, installed: stri
     fs.writeFileSync(target, await downloadUrl(file.url))
     installed.push(file.filename)
   }
+  // зависимости (обычно моды) — в папку модов, а не шейдеров/текстурпаков
+  const dd = depDir || modsDir
+  fs.mkdirSync(dd, { recursive: true })
   for (const dep of v.dependencies || []) {
     if (dep.dependency_type !== 'required' || !dep.project_id || visited.has(dep.project_id)) continue
     visited.add(dep.project_id)
     try {
       const cands = await projectVersions(dep.project_id, v.game_versions[0], v.loaders[0])
-      if (cands[0]) await installModVersion(cands[0], modsDir, installed, visited)
+      if (cands[0]) await installModVersion(cands[0], dd, installed, visited, dd)
     } catch { /* optional */ }
   }
 }
@@ -299,6 +302,9 @@ const handlers: Record<string, Handler> = {
     return { added: paths.map((f) => addModFile(inst.gameDir, f)) }
   },
 
+  'content:list': (p) => listContent(resolveInstance(p).gameDir, String(p?.sub || 'shaderpacks')),
+  'content:delete': (p) => { deleteContent(resolveInstance(p).gameDir, String(p?.sub || ''), String(p?.file || '')); return { ok: true } },
+
   'saves:list': (p) => listWorlds(resolveInstance(p).gameDir),
 
   'paths:open': (p) => {
@@ -322,13 +328,15 @@ const handlers: Record<string, Handler> = {
   'modrinth:categories': () => [...MOD_CATEGORIES],
   'modrinth:install': async (p) => {
     const inst = resolveInstance(p)
-    const vers = await projectVersions(String(p?.projectId || ''), inst.mcVersion, inst.loader === 'vanilla' ? undefined : inst.loader)
-    const v = pickVersion(vers, inst.mcVersion, inst.loader === 'vanilla' ? undefined : inst.loader)
+    const kind = (p?.kind === 'shader' || p?.kind === 'resourcepack') ? p.kind : 'mod'
+    const useLoader = kind === 'mod' && inst.loader !== 'vanilla' ? inst.loader : undefined
+    const vers = await projectVersions(String(p?.projectId || ''), inst.mcVersion, useLoader)
+    const v = pickVersion(vers, inst.mcVersion, useLoader)
     if (!v) throw new Error('Нет версии под этот инстанс')
-    const modsDir = path.join(inst.gameDir, 'mods')
-    fs.mkdirSync(modsDir, { recursive: true })
+    const targetDir = path.join(inst.gameDir, contentSubdir(kind))
+    fs.mkdirSync(targetDir, { recursive: true })
     const installed: string[] = []
-    await installModVersion(v, modsDir, installed, new Set())
+    await installModVersion(v, targetDir, installed, new Set(), path.join(inst.gameDir, 'mods'))
     return { installed }
   },
   'modrinth:installPack': async (p) => {

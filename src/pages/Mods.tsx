@@ -41,6 +41,7 @@ export function Mods() {
 
   // --- каталог ---
   const [q, setQ] = useState('')
+  const [kind, setKind] = useState<'mod' | 'shader' | 'resourcepack'>('mod')
   const [hits, setHits] = useState<any[]>([])
   const [total, setTotal] = useState(0)
   const [offset, setOffset] = useState(0)
@@ -49,12 +50,21 @@ export function Mods() {
   const [cats, setCats] = useState<string[]>([])
   const [busy, setBusy] = useState('')
   const [loading, setLoading] = useState(false)
+  const [kindFiles, setKindFiles] = useState<any[]>([])
+
+  const kindSub = kind === 'shader' ? 'shaderpacks' : kind === 'resourcepack' ? 'resourcepacks' : 'mods'
+  const kindLabel = kind === 'shader' ? 'Шейдеры' : kind === 'resourcepack' ? 'Текстурпаки' : 'Моды'
   const [notice, setNotice] = useState('')
 
   // --- миры ---
   const [worlds, setWorlds] = useState<any[]>([])
 
   const refreshMine = async () => { if (inst) setMine(await call<any[]>('mods:list', { instanceId: inst.id })) }
+  const refreshKindFiles = async () => {
+    if (!inst) return
+    if (kind === 'mod') { await refreshMine(); return }
+    setKindFiles(await call<any[]>('content:list', { instanceId: inst.id, sub: kindSub }))
+  }
 
   useEffect(() => {
     refreshMine().catch(() => {})
@@ -70,7 +80,7 @@ export function Mods() {
     if (!inst) return
     setLoading(true)
     try {
-      const r = await call<any>('modrinth:search', { query, kind: 'mod', gameVersion: inst.mcVersion, loader: inst.loader, categories, offset: off })
+      const r = await call<any>('modrinth:search', { query, kind, gameVersion: inst.mcVersion, loader: inst.loader, categories: kind === 'mod' ? categories : [], offset: off })
       setHits((prev) => (append ? [...prev, ...r.hits] : r.hits))
       setTotal(r.total)
       setOffset(off)
@@ -85,7 +95,7 @@ export function Mods() {
     const t = setTimeout(() => { doSearch(q, cats, 0, false) }, 350)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, cats.join(','), inst?.id, tab])
+  }, [q, cats.join(','), inst?.id, tab, kind])
 
   const visible = useMemo(() => {
     const s = fq.trim().toLowerCase()
@@ -131,7 +141,12 @@ export function Mods() {
     if (!inst) return
     setBusy(id)
     setNotice('')
-    try { await call('modrinth:install', { instanceId: inst.id, projectId: id }); await refreshMine(); setNotice('Мод установлен') }
+    try {
+      await call('modrinth:install', { instanceId: inst.id, projectId: id, kind })
+      await refreshMine()
+      await refreshKindFiles()
+      setNotice('Установлено')
+    }
     catch (e: any) { setNotice(`Ошибка: ${e.message}`) }
     finally { setBusy('') }
   }
@@ -220,24 +235,41 @@ export function Mods() {
 
       {tab === 'catalog' && (
         <div>
-          <div className="row">
-            <input className="input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Найти мод… например, sodium" style={{ fontSize: 15 }} />
+          <div className="row" style={{ flexWrap: 'wrap' }}>
+            {([['mod', 'Моды'], ['shader', 'Шейдеры'], ['resourcepack', 'Текстурпаки']] as const).map(([v, l]) => (
+              <button key={v} className="btn" style={kind === v ? { borderColor: 'var(--red)', color: 'var(--accent-soft)' } : {}} onClick={() => setKind(v)}>{l}</button>
+            ))}
+          </div>
+          <div className="row" style={{ marginTop: 12 }}>
+            <input
+              className="input" value={q} onChange={(e) => setQ(e.target.value)}
+              placeholder={kind === 'mod' ? 'Найти мод… например, sodium' : kind === 'shader' ? 'Найти шейдер… например, bliss' : 'Найти текстурпак…'}
+              style={{ fontSize: 15 }}
+            />
           </div>
           <div className="browse">
-            <aside className="filters">
-              <div className="row" style={{ justifyContent: 'space-between' }}>
-                <span style={{ fontFamily: 'var(--font-dot)', letterSpacing: 2, fontSize: 12 }}>КАТЕГОРИИ</span>
-                {!!cats.length && <button className="link" onClick={() => setCats([])}>сбросить</button>}
-              </div>
-              <div className="chips">
-                {allCats.map((c) => (
-                  <button key={c} className={'chip' + (cats.includes(c) ? ' on' : '')} onClick={() => setCats(cats.includes(c) ? cats.filter((x) => x !== c) : [...cats, c])}>
-                    {catLabel(c)}
-                  </button>
-                ))}
-              </div>
-              <div className="sub" style={{ margin: '8px 0 0' }}>фильтр: {inst.mcVersion} · {inst.loader}{total > 0 && ` · ${total.toLocaleString()}`}</div>
-            </aside>
+            {kind === 'mod' ? (
+              <aside className="filters">
+                <div className="row" style={{ justifyContent: 'space-between' }}>
+                  <span style={{ fontFamily: 'var(--font-dot)', letterSpacing: 2, fontSize: 12 }}>КАТЕГОРИИ</span>
+                  {!!cats.length && <button className="link" onClick={() => setCats([])}>сбросить</button>}
+                </div>
+                <div className="chips">
+                  {allCats.map((c) => (
+                    <button key={c} className={'chip' + (cats.includes(c) ? ' on' : '')} onClick={() => setCats(cats.includes(c) ? cats.filter((x) => x !== c) : [...cats, c])}>
+                      {catLabel(c)}
+                    </button>
+                  ))}
+                </div>
+                <div className="sub" style={{ margin: '8px 0 0' }}>фильтр: {inst.mcVersion} · {inst.loader}{total > 0 && ` · ${total.toLocaleString()}`}</div>
+              </aside>
+            ) : (
+              <aside className="filters">
+                <div style={{ fontFamily: 'var(--font-dot)', letterSpacing: 2, fontSize: 12 }}>{kindLabel.toUpperCase()}</div>
+                <div className="sub" style={{ margin: '8px 0 0' }}>фильтр: {inst.mcVersion}{total > 0 && ` · ${total.toLocaleString()}`}</div>
+                <div className="sub" style={{ margin: '8px 0 0' }}>установлено: {kindFiles.length}</div>
+              </aside>
+            )}
             <div className="grid mods" style={{ flex: 1 }}>
               {loading && !hits.length && <>{[0, 1, 2, 3, 4, 5].map((i) => <div key={i} className="skel" />)}</>}
               {!loading && !hits.length && <div className="sub">Ничего не нашлось — попробуй другой запрос или убери категории</div>}
@@ -275,6 +307,25 @@ export function Mods() {
               </button>
             )}
           </div>
+          {kind !== 'mod' && (
+            <>
+              <h3 style={{ fontFamily: 'var(--font-dot)', letterSpacing: 2, marginTop: 18 }}>УСТАНОВЛЕНО · {kindFiles.length}</h3>
+              <div className="grid">
+                {kindFiles.map((f) => (
+                  <div key={f.name} className="card row" style={{ justifyContent: 'space-between' }}>
+                    <span style={{ fontFamily: 'Consolas,monospace', fontSize: 13 }}>{f.name}</span>
+                    <button
+                      className="btn ghost"
+                      onClick={() => call('content:delete', { instanceId: inst.id, sub: kindSub, file: f.name }).then(() => refreshKindFiles())}
+                    >
+                      Удалить
+                    </button>
+                  </div>
+                ))}
+                {!kindFiles.length && <div className="sub">Пока пусто</div>}
+              </div>
+            </>
+          )}
         </div>
       )}
 
@@ -282,6 +333,8 @@ export function Mods() {
         <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))' }}>
           {[
             ['Моды', 'mods', `${mine.length} файлов`],
+            ['Шейдеры', 'shaderpacks', 'для Iris и OptiFine'],
+            ['Текстурпаки', 'resourcepacks', '16x–512x'],
             ['Сохранения', 'saves', 'миры сборки'],
             ['Скриншоты', 'screenshots', 'F2 в игре'],
             ['Корень сборки', '', 'всё остальное'],

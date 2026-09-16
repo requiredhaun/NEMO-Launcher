@@ -16,6 +16,21 @@ export interface Theme {
   compact: boolean
 }
 
+export interface ThemePreset { id: string; label: string; sub: string; theme: Theme }
+
+const FULL: Theme = { accent: 'red', dots: true, glow: true, animations: true, dotFont: true, compact: false }
+
+export const THEME_PRESETS: ThemePreset[] = [
+  { id: 'classic', label: 'NEMO Classic', sub: 'красный · точки · glow', theme: { ...FULL } },
+  { id: 'stealth', label: 'Stealth', sub: 'монохром · тихо', theme: { ...FULL, accent: 'white', dots: false, glow: false } },
+  { id: 'toxic', label: 'Toxic', sub: 'зелёный · без dot-шрифта', theme: { ...FULL, accent: 'green', dotFont: false } },
+  { id: 'amethyst', label: 'Amethyst', sub: 'фиолет · компакт', theme: { ...FULL, accent: 'purple', glow: false, compact: true } },
+]
+
+export function presetMatches(p: ThemePreset, t: Partial<Theme>): boolean {
+  return (Object.keys(p.theme) as (keyof Theme)[]).every((k) => (t[k] ?? FULL[k]) === p.theme[k])
+}
+
 export function accentHex(accent: string): string {
   return ACCENTS[accent]?.hex || ACCENTS.red.hex
 }

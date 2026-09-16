@@ -1,5 +1,14 @@
 const API = 'https://api.modrinth.com/v2'
 
+export type ProjectKind = 'mod' | 'modpack' | 'shader' | 'resourcepack'
+
+/** Папка контента внутри сборки по типу проекта. */
+export function contentSubdir(kind: ProjectKind): string {
+  if (kind === 'shader') return 'shaderpacks'
+  if (kind === 'resourcepack') return 'resourcepacks'
+  return 'mods'
+}
+
 export interface ModHit { id: string; slug: string; title: string; description: string; author: string; downloads: number; iconUrl?: string; categories: string[]; clientSide?: string; serverSide?: string }
 export interface ModVersion { id: string; version_number: string; game_versions: string[]; loaders: string[]; files: { url: string; filename: string; primary: boolean; hashes?: { sha512?: string } }[]; dependencies: { project_id?: string; dependency_type: string }[] }
 export interface PackFile { hashes: { sha512?: string; sha1?: string }; url: string; filename: string; primary: boolean; size: number }
@@ -11,12 +20,13 @@ export const MOD_CATEGORIES = [
   'utility', 'worldgen',
 ] as const
 
-export async function searchProjects(query: string, kind: 'mod' | 'modpack', gameVersion?: string, loader?: string, offset = 0, categories: string[] = []): Promise<{ total: number; hits: ModHit[] }> {
+export async function searchProjects(query: string, kind: ProjectKind, gameVersion?: string, loader?: string, offset = 0, categories: string[] = []): Promise<{ total: number; hits: ModHit[] }> {
   const params = new URLSearchParams({ query, limit: '24', offset: String(offset), index: 'downloads' })
   // каждый внутренний массив — OR, между массивами — AND
   const facets: string[][] = [[`project_type:${kind}`]]
   if (gameVersion) facets.push([`versions:"${gameVersion}"`])
-  if (loader && loader !== 'any' && loader !== 'vanilla') facets.push([`categories:"${loader}"`])
+  // у шейдеров/текстурпаков загрузчиков нет — фильтр только для модов
+  if (kind === 'mod' && loader && loader !== 'any' && loader !== 'vanilla') facets.push([`categories:"${loader}"`])
   const cats = categories.filter(Boolean)
   if (cats.length) facets.push(cats.map((c) => `categories:"${c}"`))
   params.set('facets', JSON.stringify(facets))
