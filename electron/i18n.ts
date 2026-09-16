@@ -81,6 +81,9 @@ const RU: Record<string, string> = {
   'rpc.launchD': 'Запускает «{name}»',
   'rpc.launchS': 'Загрузка файлов игры…',
   'rpc.playS': 'Играет как {nick}',
+  // updater
+  'upd.checkFail': 'GitHub не ответил ({status})',
+  'upd.noAsset': 'В релизе нет установщика — открой страницу релиза',
 }
 
 const EN: Record<string, string> = {
@@ -150,6 +153,8 @@ const EN: Record<string, string> = {
   'rpc.launchD': 'Launching "{name}"',
   'rpc.launchS': 'Downloading game files…',
   'rpc.playS': 'Playing as {nick}',
+  'upd.checkFail': 'GitHub unavailable ({status})',
+  'upd.noAsset': 'No installer in release — open the release page',
 }
 
 /** Перевод по ключу; неизвестный язык и отсутствующий ключ — fallback на ru/ключ. */

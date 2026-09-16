@@ -36,6 +36,9 @@ export interface LauncherConfig {
   theme: ThemeConfig
   discordRpc: boolean
   discordClientId: string
+  autoCheckUpdates: boolean
+  skippedVersion: string
+  lastUpdateCheck: number
   windowBounds?: { x?: number; y?: number; width: number; height: number }
   selectedInstanceId?: string
 }
@@ -67,6 +70,9 @@ function defaults(): LauncherConfig {
     // Discord RPC включён из коробки: присутствие видно сразу после скачивания
     discordRpc: true,
     discordClientId: '1549482343906152498',
+    autoCheckUpdates: true,
+    skippedVersion: '',
+    lastUpdateCheck: 0,
   }
 }
 

@@ -21,6 +21,7 @@ import { rpcIdle, rpcLaunching, rpcPlaying, rpcClear } from './rpc'
 import { requestLaunchCancel, currentGameDir, killGameProcesses } from './launcher'
 import { cancelInstaller } from './versions'
 import { setLang, tl } from './i18n'
+import { checkForUpdates, downloadUpdate, launchInstaller, openReleasesPage } from './updater'
 
 type Handler = (payload: any) => Promise<unknown> | unknown
 
@@ -332,6 +333,33 @@ const handlers: Record<string, Handler> = {
     return { ok: true }
   },
   'discord:refresh': () => { rpcIdle(); return { ok: true } },
+
+  'update:check': async (p) => {
+    // не чаще раза в 20ч на автопроверке; руками — всегда
+    if (!p?.manual && Date.now() - (getConfig().lastUpdateCheck || 0) < 20 * 3600 * 1000) {
+      return { available: false, throttled: true, current: '', latest: '', name: '', notes: '', pageUrl: '', setupUrl: '', skipped: false }
+    }
+    const info = await checkForUpdates()
+    updateConfig({ lastUpdateCheck: Date.now() })
+    return { ...info, skipped: !!info.latest && getConfig().skippedVersion === info.latest }
+  },
+  'update:skip': (p) => updateConfig({ skippedVersion: String(p?.tag || '') }),
+  'update:unskip': () => updateConfig({ skippedVersion: '' }),
+  'update:download': async () => {
+    const info = await checkForUpdates()
+    const win = getMainWindow()
+    const file = await downloadUpdate(info.setupUrl, (done, total) => {
+      if (win && !win.isDestroyed()) win.webContents.send('update:progress', { done, total })
+    })
+    return { file }
+  },
+  'update:install': (p) => {
+    const f = String(p?.file || '')
+    if (!f) throw new Error(tl('upd.noAsset'))
+    launchInstaller(f)
+    return { ok: true }
+  },
+  'update:openPage': (p) => { openReleasesPage(String(p?.url || 'https://github.com/requiredhaun/NEMO-Launcher/releases')); return { ok: true } },
 
   'modrinth:search': (p) => searchProjects(String(p?.query || ''), (p?.kind as any) || 'mod', String(p?.gameVersion || ''), String(p?.loader || ''), Number(p?.offset) || 0, (p?.categories as string[]) || []),
   'modrinth:categories': () => [...MOD_CATEGORIES],

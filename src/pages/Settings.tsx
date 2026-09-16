@@ -145,7 +145,52 @@ export function Settings() {
             </div>
           )}
         </div>
+        <UpdateCard cfg={cfg} set={set} />
       </div>
+    </div>
+  )
+}
+
+function UpdateCard({ cfg, set }: { cfg: any; set: (p: any) => Promise<void> }) {
+  useLang()
+  const [msg, setMsg] = useState('')
+  const [busy, setBusy] = useState(false)
+  const check = async () => {
+    setBusy(true); setMsg(t('update.checking'))
+    try {
+      const r = await call<any>('update:check', { manual: true })
+      setMsg(r?.available ? t('update.available', { tag: r.latest }) : t('update.uptodate'))
+    } catch (e: any) {
+      setMsg(t('update.failed', { msg: e?.message || 'IPC error' }))
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <div className="card">
+      <div style={{ fontFamily: 'var(--font-dot)', letterSpacing: 2 }}>{t('update.title')}</div>
+      <div className="sub" style={{ margin: '6px 0 0' }}>{t('update.current', { v: __APP_VERSION__ })}</div>
+      <div className="toggle-row" style={{ marginTop: 6 }}>
+        <div>
+          <div>{t('update.auto')}</div>
+          <div className="t-sub">{t('update.auto_sub')}</div>
+        </div>
+        <button
+          className={'switch' + (cfg.autoCheckUpdates !== false ? ' on' : '')}
+          onClick={() => set({ autoCheckUpdates: cfg.autoCheckUpdates === false })}
+          title={t('update.auto')}
+        />
+      </div>
+      <div className="row" style={{ marginTop: 10, gap: 8, flexWrap: 'wrap' }}>
+        <button className="btn ghost" onClick={check} disabled={busy}>{t('update.check_now')}</button>
+        {!!cfg.skippedVersion && (
+          <button className="btn ghost" onClick={() => set({ skippedVersion: '' }).then(() => setMsg(''))}>
+            {t('update.unskip')}
+          </button>
+        )}
+      </div>
+      {!!cfg.skippedVersion && <div className="sub" style={{ marginTop: 6 }}>{t('update.skipped', { v: cfg.skippedVersion })}</div>}
+      {!!msg && <div className="sub" style={{ marginTop: 6 }}>{msg}</div>}
     </div>
   )
 }
