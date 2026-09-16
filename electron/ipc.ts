@@ -20,6 +20,7 @@ import { listMods, toggleMod, deleteMod, addModFile, listWorlds, listContent, de
 import { rpcIdle, rpcLaunching, rpcPlaying, rpcClear } from './rpc'
 import { requestLaunchCancel, currentGameDir, killGameProcesses } from './launcher'
 import { cancelInstaller } from './versions'
+import { setLang, tl } from './i18n'
 
 type Handler = (payload: any) => Promise<unknown> | unknown
 
@@ -36,7 +37,7 @@ async function installerJava(gameDir: string, mc: string, send: (l: string) => v
     return cfg.javaPath || detected.path
   }
   const need = Math.max(17, majorForMc(mc))
-  send(`Системная Java не подходит для установщика — качаю Java ${need}…`)
+  send(tl('java.installerNeed', { need }))
   return ensureJavaRuntime(gameDir, need, (done, total, name) => {
     const win = getMainWindow()
     if (win && !win.isDestroyed()) win.webContents.send('launch:progress', { type: 'java', kind: `Java ${need}`, name, task: done, total })
@@ -61,7 +62,7 @@ async function ensureVersionJson(versionId: string, gameDir: string): Promise<an
   try { return JSON.parse(fs.readFileSync(local, 'utf-8')) } catch { /* download */ }
   const manifest = await getManifest()
   const entry = manifest.versions.find((v) => v.id === versionId)
-  if (!entry?.url) throw new Error(`Версия ${versionId} не найдена`)
+  if (!entry?.url) throw new Error(tl('ver.notFound', { v: versionId }))
   const res = await fetch(entry.url)
   if (!res.ok) throw new Error(`version.json: ${res.status}`)
   const json = await res.json()
@@ -74,7 +75,7 @@ async function installModVersion(v: ModVersion, modsDir: string, installed: stri
   if (visited.has(v.id)) return
   visited.add(v.id)
   const file = v.files.find((f) => f.primary) || v.files[0]
-  if (!file?.url) throw new Error('Файл версии не найден')
+  if (!file?.url) throw new Error(tl('ipc.modVersionFile'))
   const target = path.join(modsDir, path.basename(file.filename))
   if (!fs.existsSync(target)) {
     fs.writeFileSync(target, await downloadUrl(file.url))
@@ -97,12 +98,15 @@ const handlers: Record<string, Handler> = {
   'config:get': () => getConfig(),
   'config:set': (p) => {
     const patch = { ...(p as Partial<LauncherConfig>) }
+    if (patch.language === 'ru' || patch.language === 'en') setLang(patch.language)
     if (patch.ramMB != null) patch.ramMB = Math.min(16384, Math.max(512, Math.floor(Number(patch.ramMB) || 4096)))
     if (patch.gameWidth != null) patch.gameWidth = Math.min(7680, Math.max(320, Math.floor(Number(patch.gameWidth) || 1280)))
     if (patch.gameHeight != null) patch.gameHeight = Math.min(4320, Math.max(240, Math.floor(Number(patch.gameHeight) || 720)))
     return updateConfig(patch)
   },
-  'config:flagPresets': () => FLAG_PRESETS,
+  'config:flagPresets': () => Object.fromEntries(
+    Object.entries(FLAG_PRESETS).map(([k, v]) => [k, { flags: v.flags, label: tl(`flags.${k}`) }]),
+  ),
   'system:info': () => ({ totalRamMB: totalRamMB(), recommendedRamMB: recommendedRamMB(), platform: process.platform, userData: userData() }),
 
   'instances:list': () => listInstances(userData()),
@@ -119,7 +123,7 @@ const handlers: Record<string, Handler> = {
   },
   'instances:update': (p) => {
     const inst = readInstance(path.join(userData(), 'instances', String(p?.id || '')))
-    if (!inst) throw new Error('Инстанс не найден')
+    if (!inst) throw new Error(tl('ipc.noInstance'))
     // whitelist: id/gameDir/createdAt менять через IPC нельзя — иначе инстанс теряется
     const patch = (p?.patch || {}) as Partial<Instance>
     const next: Instance = {
@@ -146,7 +150,7 @@ const handlers: Record<string, Handler> = {
   },
   'auth:offline': (p) => {
     const nick = String(p?.nick || '').trim()
-    if (!/^[A-Za-z0-9_]{1,16}$/.test(nick)) throw new Error('Ник: 1–16 символов, латиница/цифры/_')
+    if (!/^[A-Za-z0-9_]{1,16}$/.test(nick)) throw new Error(tl('ipc.badNick'))
     updateConfig({ nick, authMode: 'offline' })
     return { mode: 'offline' as const, nick }
   },
@@ -186,21 +190,21 @@ const handlers: Record<string, Handler> = {
     } else if (loader === 'forge') {
       const promos = await forgePromos()
       const full = forgeFull(mc, String(p?.full || promos[mc] || ''))
-      if (!full) throw new Error(`Forge не вышел для Minecraft ${mc} — выбери Fabric, NeoForge или другую версию игры`)
-      send(`Скачиваю Forge ${full}…`)
+      if (!full) throw new Error(tl('ver.forgeNone', { mc }))
+      send(tl('ver.dlForge', { v: full }))
       const jar = await downloadForgeInstaller(full)
       const javaPath = await installerJava(inst.gameDir, mc, send)
       ensureLauncherProfile(inst.gameDir)
       await runModdedInstaller(jar, inst.gameDir, javaPath, send)
       const all = Array.from(installedVersions(inst.gameDir))
       versionId = matchInstalledVersion(all, mc, full) || mc
-      if (versionId === mc) send('Установщик отработал, но версия не опознана — проверь список вручную')
+      if (versionId === mc) send(tl('ver.unrecognized'))
       else await mergeInherits(inst.gameDir, versionId)
     } else if (loader === 'neoforge') {
       const vers = await neoforgeVersions(mc)
       const v = String(p?.full || '') || vers[0]
-      if (!v) throw new Error(`NeoForge не вышел для Minecraft ${mc} — выбери Fabric, Forge или другую версию игры`)
-      send(`Скачиваю NeoForge ${v}…`)
+      if (!v) throw new Error(tl('ver.neoNone', { mc }))
+      send(tl('ver.dlNeo', { v }))
       const jar = await downloadNeoForgeInstaller(v)
       const javaPath = await installerJava(inst.gameDir, mc, send)
       ensureLauncherProfile(inst.gameDir)
@@ -218,14 +222,14 @@ const handlers: Record<string, Handler> = {
   'launch:launch': async (p) => {
     const inst = resolveInstance(p)
     const cfg = getConfig()
-    if (!inst.versionId) throw new Error('Выбери версию в инстансе')
+    if (!inst.versionId) throw new Error(tl('ipc.pickVersion'))
     let auth: { mode: 'offline' | 'ely'; accessToken?: string; uuid?: string; name: string }
     if (cfg.authMode === 'ely') {
       const s = loadSession() || (await elyEnsureValid())
-      if (!s) throw new Error('Сессия Ely.by истекла')
+      if (!s) throw new Error(tl('ipc.elyExpired'))
       auth = { mode: 'ely', accessToken: s.accessToken, uuid: s.profile.id, name: s.profile.name }
     } else {
-      if (!cfg.nick) throw new Error('Укажи ник')
+      if (!cfg.nick) throw new Error(tl('ipc.needNick'))
       auth = { mode: 'offline', name: cfg.nick }
     }
     const win = getMainWindow()
@@ -235,10 +239,15 @@ const handlers: Record<string, Handler> = {
     }
     fs.mkdirSync(inst.gameDir, { recursive: true })
     rpcLaunching(inst.name)
-    emit('launch:status', { phase: 'download', status: 'Подготовка версии…' })
+    emit('launch:status', { phase: 'download', status: tl('launch.prep') })
     let javaPath = cfg.javaPath.trim()
     let major = majorForMc(inst.mcVersion)
-    try { major = (await ensureVersionJson(inst.versionId, inst.gameDir))?.javaVersion?.majorVersion || major } catch { /* keep */ }
+    let javaComponent = ''
+    try {
+      const vj = await ensureVersionJson(inst.versionId, inst.gameDir)
+      major = vj?.javaVersion?.majorVersion || major
+      javaComponent = vj?.javaVersion?.component || ''
+    } catch { /* keep */ }
     if (!javaPath) {
       const detected = await detectJava('')
       const detectedMajor = detected ? parseJavaMajor(detected.version) : 0
@@ -247,22 +256,22 @@ const handlers: Record<string, Handler> = {
       if (detected && ok) {
         javaPath = detected.path
       } else {
-        emit('launch:status', { phase: 'download', status: `Качаю Java ${major}…` })
+        emit('launch:status', { phase: 'download', status: tl('java.downloading', { major }) })
         javaPath = await ensureJavaRuntime(inst.gameDir, major, (done, total, name) =>
-          emit('launch:progress', { type: 'java', kind: `Java ${major}`, name, task: done, total }))
+          emit('launch:progress', { type: 'java', kind: `Java ${major}`, name, task: done, total }), javaComponent)
       }
     }
-    emit('launch:status', { phase: 'download', status: 'Загружаю файлы игры…' })
+    emit('launch:status', { phase: 'download', status: tl('launch.downloading') })
     launchGame({
       versionId: inst.versionId, nick: auth.name, gameDir: inst.gameDir,
       ramMB: inst.ramMB || cfg.ramMB, javaPath,
       flagsPreset: cfg.flagsPreset, customFlags: cfg.customFlags,
       fullscreen: cfg.fullscreenGame, gameWidth: cfg.gameWidth, gameHeight: cfg.gameHeight, auth,
       server: p?.server?.host ? { host: String(p.server.host), port: Number(p.server.port) || 25565 } : undefined,
-    }, emit).then(() => { emit('launch:status', { phase: 'run', status: 'Игра запущена' }); rpcPlaying(inst.versionId, auth.name) })
+    }, emit).then(() => { emit('launch:status', { phase: 'run', status: tl('launch.running') }); rpcPlaying(inst.versionId, auth.name) })
       .catch((e) => {
-        if (e?.cancelled) emit('launch:status', { phase: 'idle', status: 'Запуск отменён' })
-        else emit('launch:status', { phase: 'error', status: `Ошибка: ${e?.message || e}` })
+        if (e?.cancelled) emit('launch:status', { phase: 'idle', status: tl('launch.cancelled') })
+        else emit('launch:status', { phase: 'error', status: tl('launch.error', { msg: e?.message || e }) })
         emit('game:closed', { code: 1 })
       })
     return { started: true }
@@ -278,7 +287,7 @@ const handlers: Record<string, Handler> = {
 
   'java:detect': () => detectJava(getConfig().javaPath),
   'java:pick': async () => {
-    const r = await dialog.showOpenDialog(getMainWindow()!, { title: 'Выбери java.exe', properties: ['openFile'] })
+    const r = await dialog.showOpenDialog(getMainWindow()!, { title: tl('ipc.pickJava'), properties: ['openFile'] })
     return r.canceled ? null : r.filePaths[0]
   },
   'gamedir:reset': () => updateConfig({ gameDir: defaultGameDir() }),
@@ -289,8 +298,8 @@ const handlers: Record<string, Handler> = {
   'mods:addFiles': async (p) => {
     const inst = resolveInstance(p)
     const r = await dialog.showOpenDialog(getMainWindow()!, {
-      title: 'Выбери .jar моды', properties: ['openFile', 'multiSelections'],
-      filters: [{ name: 'Моды Minecraft', extensions: ['jar'] }],
+      title: tl('ipc.pickJar'), properties: ['openFile', 'multiSelections'],
+      filters: [{ name: tl('ipc.jarFilter'), extensions: ['jar'] }],
     })
     if (r.canceled) return { added: [] }
     return { added: r.filePaths.map((f) => addModFile(inst.gameDir, f)) }
@@ -298,7 +307,7 @@ const handlers: Record<string, Handler> = {
   'mods:addFilesByPath': (p) => {
     const inst = resolveInstance(p)
     const paths = ((p?.paths as string[]) || []).filter((f) => f.toLowerCase().endsWith('.jar'))
-    if (!paths.length) throw new Error('Нужны .jar файлы')
+    if (!paths.length) throw new Error(tl('ipc.needJar'))
     return { added: paths.map((f) => addModFile(inst.gameDir, f)) }
   },
 
@@ -309,7 +318,7 @@ const handlers: Record<string, Handler> = {
 
   'paths:open': (p) => {
     const rel = String(p?.rel || '')
-    if (rel.includes('..')) throw new Error('Некорректный путь')
+    if (rel.includes('..')) throw new Error(tl('ipc.badPath'))
     const base = resolveInstance(p).gameDir
     const target = rel ? path.join(base, ...rel.split('/')) : base
     fs.mkdirSync(target, { recursive: true })
@@ -332,7 +341,7 @@ const handlers: Record<string, Handler> = {
     const useLoader = kind === 'mod' && inst.loader !== 'vanilla' ? inst.loader : undefined
     const vers = await projectVersions(String(p?.projectId || ''), inst.mcVersion, useLoader)
     const v = pickVersion(vers, inst.mcVersion, useLoader)
-    if (!v) throw new Error('Нет версии под этот инстанс')
+    if (!v) throw new Error(tl('ipc.noModVersion'))
     const targetDir = path.join(inst.gameDir, contentSubdir(kind))
     fs.mkdirSync(targetDir, { recursive: true })
     const installed: string[] = []
@@ -343,7 +352,7 @@ const handlers: Record<string, Handler> = {
     const inst = resolveInstance(p)
     const vers = await projectVersions(String(p?.projectId || ''), inst.mcVersion, inst.loader === 'vanilla' ? undefined : inst.loader)
     const v = pickVersion(vers, inst.mcVersion, inst.loader === 'vanilla' ? undefined : inst.loader)
-    if (!v) throw new Error('Нет сборки под этот инстанс')
+    if (!v) throw new Error(tl('ipc.noPackVersion'))
     const mrpack = v.files.find((f) => f.filename.endsWith('.mrpack')) || v.files[0]
     const buf = await downloadUrl(mrpack.url)
     const tmp = path.join(app.getPath('userData'), 'cache', path.basename(mrpack.filename))
@@ -352,17 +361,17 @@ const handlers: Record<string, Handler> = {
     const { default: AdmZip } = await import('adm-zip')
     const zip = new AdmZip(tmp)
     const indexRaw = zip.getEntry('modrinth.index.json')?.getData().toString('utf-8')
-    if (!indexRaw) throw new Error('Битый .mrpack')
+    if (!indexRaw) throw new Error(tl('ipc.badMrpack'))
     const index = JSON.parse(indexRaw)
     const win = getMainWindow()
     const emit = (s: string) => { if (win && !win.isDestroyed()) win.webContents.send('install:log', s) }
     const planned = planDests(inst.gameDir, index.files || [])
     let done = 0
-    emit(`Файлов сборки: ${planned.length} — качаю…`)
+    emit(tl('ipc.packFiles', { n: planned.length }))
     await pool(planned, 6, async (f) => {
       writeFileChecked(f.dest, await downloadUrl(f.url), f.hashes)
       done++
-      if (done % 5 === 0 || done === planned.length) emit(`Файлы сборки: ${done}/${planned.length}`)
+      if (done % 5 === 0 || done === planned.length) emit(tl('ipc.packProgress', { done, total: planned.length }))
     })
     for (const e of zip.getEntries()) {
       if (e.entryName.startsWith('overrides/') && !e.isDirectory) {
@@ -385,7 +394,7 @@ export function registerIpc(): void {
   for (const [ch, h] of Object.entries(handlers)) {
     ipcMain.handle(ch, async (_e, payload) => {
       try { return { ok: true, data: await h(payload) } }
-      catch (e: any) { return { ok: false, error: e?.message || String(e) } }
+      catch (e: any) { return { ok: false, error: e?.message || String(e), cancelled: !!e?.cancelled } }
     })
   }
 }

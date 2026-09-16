@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion'
+import { t, useLang } from '../lib/i18n'
 
 export interface ConfirmProps {
   open: boolean
@@ -13,7 +14,10 @@ export interface ConfirmProps {
 }
 
 /** Модалка подтверждения в дизайне лаунчера вместо системного confirm(). */
-export function ConfirmModal({ open, title, text, okLabel = 'Подтвердить', cancelLabel = 'Отмена', danger, busy, onOk, onCancel }: ConfirmProps) {
+export function ConfirmModal({ open, title, text, okLabel, cancelLabel, danger, busy, onOk, onCancel }: ConfirmProps) {
+  useLang()
+  const ok = okLabel ?? t('modal.ok')
+  const cancel = cancelLabel ?? t('modal.cancel')
   return (
     <AnimatePresence>
       {open && (
@@ -33,9 +37,9 @@ export function ConfirmModal({ open, title, text, okLabel = 'Подтверди�
             <div className="modal-title">{title}</div>
             <div className="sub" style={{ margin: '8px 0 0', lineHeight: 1.6 }}>{text}</div>
             <div className="row" style={{ marginTop: 18, justifyContent: 'flex-end' }}>
-              <button className="btn ghost" disabled={busy} onClick={onCancel}>{cancelLabel}</button>
+              <button className="btn ghost" disabled={busy} onClick={onCancel}>{cancel}</button>
               <button className={'btn' + (danger ? ' danger-btn' : ' play')} style={danger ? {} : { padding: '11px 26px', fontSize: 14 }} disabled={busy} onClick={onOk}>
-                {busy ? 'Работаю…' : okLabel}
+                {busy ? t('modal.working') : ok}
               </button>
             </div>
           </motion.div>

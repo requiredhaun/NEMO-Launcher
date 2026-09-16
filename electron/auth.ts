@@ -2,6 +2,7 @@ import { app } from 'electron'
 import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
+import { tl } from './i18n'
 
 const AUTHSERVER = 'https://authserver.ely.by'
 const SKINSYSTEM = 'https://skinsystem.ely.by'
@@ -38,7 +39,7 @@ export async function elyLogin(login: string, password: string): Promise<ElySess
   const body: any = await res.json().catch(() => ({}))
   if (!res.ok) throw new Error(body?.errorMessage || body?.error || `Ely.by: ${res.status}`)
   const profile = body.selectedProfile || body.availableProfiles?.[0]
-  if (!profile) throw new Error('У аккаунта Ely.by нет профиля Minecraft')
+  if (!profile) throw new Error(tl('auth.noProfile'))
   const s: ElySession = { accessToken: body.accessToken, clientToken: body.clientToken, profile: { id: profile.id, name: profile.name } }
   saveSession(s)
   return s

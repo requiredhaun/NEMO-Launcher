@@ -1,6 +1,9 @@
 import { motion } from 'framer-motion'
+import { t, useLang } from '../lib/i18n'
 
-export function GlyphLoader({ text = 'загрузка' }: { text?: string }) {
+export function GlyphLoader({ text }: { text?: string }) {
+  useLang()
+  const label = text ?? t('app.loading')
   const bars = [0, 1, 2, 3, 4, 5, 6, 7]
   return (
     <div className="row" style={{ gap: 14 }}>
@@ -14,7 +17,7 @@ export function GlyphLoader({ text = 'загрузка' }: { text?: string }) {
           />
         ))}
       </div>
-      <span style={{ fontFamily: 'var(--font-dot)', letterSpacing: 3, fontSize: 13, color: 'var(--dim)' }}>{text}</span>
+      <span style={{ fontFamily: 'var(--font-dot)', letterSpacing: 3, fontSize: 13, color: 'var(--dim)' }}>{label}</span>
     </div>
   )
 }

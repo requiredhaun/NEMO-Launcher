@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { call } from '../lib/ipc'
+import { t } from '../lib/i18n'
 
 interface GameState {
   status: string
@@ -14,16 +15,16 @@ interface GameState {
 }
 
 export const useGame = create<GameState>((set) => ({
-  status: 'Готов', phase: 'idle', progress: 0, log: [], launching: false, playing: false, launchingId: '',
+  status: t('game.ready'), phase: 'idle', progress: 0, log: [], launching: false, playing: false, launchingId: '',
   launch: async (instanceId) => {
     lastPhase = ''
-    set({ launching: true, playing: false, launchingId: instanceId, status: 'Запуск…', phase: 'download', progress: 0 })
+    set({ launching: true, playing: false, launchingId: instanceId, status: t('game.launching'), phase: 'download', progress: 0 })
     await call('launch:launch', { instanceId })
   },
   cancel: async () => {
     lastPhase = ''
     try { await call('launch:cancel', {}) } catch { /* ignore */ }
-    set({ launching: false, launchingId: '', status: 'Отменяю…', phase: 'download', progress: 0 })
+    set({ launching: false, launchingId: '', status: t('game.cancelling'), phase: 'download', progress: 0 })
   },
 }))
 
@@ -31,12 +32,12 @@ export const useGame = create<GameState>((set) => ({
 function phaseLabel(type: string): string | null {
   if (!type) return null
   if (type.startsWith('java')) return 'Java'
-  if (type === 'version-jar') return 'Клиент игры'
-  if (type === 'assets') return 'Ресурсы'
-  if (type === 'assets-copy') return 'Распаковка ресурсов'
-  if (type === 'natives') return 'Нативные библиотеки'
-  if (type === 'libraries' || type === 'minecraft-libraries') return 'Библиотеки'
-  if (type === 'forge' || type === 'files') return 'Файлы'
+  if (type === 'version-jar') return t('phase.client')
+  if (type === 'assets') return t('phase.assets')
+  if (type === 'assets-copy') return t('phase.assets_copy')
+  if (type === 'natives') return t('phase.natives')
+  if (type === 'libraries' || type === 'minecraft-libraries') return t('phase.libs')
+  if (type === 'forge' || type === 'files') return t('phase.files')
   return null
 }
 
@@ -69,7 +70,7 @@ export function bindGameEvents() {
       const label = phaseLabel(type || '')
       if (label && label !== lastPhase && s.launching) {
         lastPhase = label
-        next.status = `Качаю: ${label}…`
+        next.status = t('game.downloading', { label })
       }
       return Object.keys(next).length ? next : s
     })
@@ -83,6 +84,6 @@ export function bindGameEvents() {
   })
   window.nema.on('game:closed', () => {
     lastPhase = ''
-    useGame.setState({ launching: false, playing: false, launchingId: '', status: 'Готов', phase: 'idle', progress: 0 })
+    useGame.setState({ launching: false, playing: false, launchingId: '', status: t('game.ready'), phase: 'idle', progress: 0 })
   })
 }

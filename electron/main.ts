@@ -1,9 +1,11 @@
 import { app, BrowserWindow, Menu, screen } from 'electron'
 import path from 'node:path'
 import { getConfig, updateConfig } from './settings'
+import { setLang } from './i18n'
 import { registerIpc } from './ipc'
 
 app.setPath('userData', process.env.NEMO_USER_DATA || path.join(app.getPath('appData'), 'nema-launcher'))
+setLang(getConfig().language)
 
 const gotLock = app.requestSingleInstanceLock()
 if (!gotLock) app.quit()

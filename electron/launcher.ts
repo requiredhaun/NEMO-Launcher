@@ -4,6 +4,7 @@ import { execFile } from 'node:child_process'
 import { app } from 'electron'
 import { Client, Authenticator } from 'minecraft-launcher-core'
 import { dashed } from './auth'
+import { tl } from './i18n'
 import { buildCustomArgs } from './flags'
 import { versionType, mergeInherits, verifyClientJar, jvmArgsFromJson, ensureSharedDirs } from './versions'
 
@@ -21,7 +22,7 @@ async function injectorArgs(gameDir: string, emit: (c: string, d: unknown) => vo
     const existing = fs.readdirSync(dir).find((f) => f.startsWith('authlib-injector-') && f.endsWith('.jar'))
     let jar = existing ? path.join(dir, existing) : ''
     if (!jar) {
-      emit('launch:status', { phase: 'download', status: 'Качаю authlib-injector для Ely.by…' })
+      emit('launch:status', { phase: 'download', status: tl('launch.authlib') })
       const rel: any = await (await fetch('https://api.github.com/yushijinhun/authlib-injector/releases/latest')).json()
       const asset = (rel?.assets || []).find((a: any) => String(a.name).endsWith('.jar') && !String(a.name).includes('sources'))
       if (!asset?.browser_download_url) return []
@@ -74,7 +75,7 @@ export function isLaunchCancelled(): boolean { return running && deadSeq >= flow
 export function currentGameDir(): string { return currentDir }
 
 function cancelledError(): any {
-  const e: any = new Error('Запуск отменён')
+  const e: any = new Error(tl('launch.cancelled'))
   e.cancelled = true
   return e
 }
@@ -137,7 +138,7 @@ export async function killGameProcesses(gameDir: string, sinceMs = 0): Promise<n
 export async function launchGame(opts: LaunchOptions, emit: (c: string, d: unknown) => void): Promise<void> {
   // живое (не отменённое) поколение уже работает — второй запуск запрещён,
   // но после отмены новый запуск разрешён сразу, не дожидаясь старого флоу
-  if (running && deadSeq < flowSeq) throw new Error('Игра уже запущена')
+  if (running && deadSeq < flowSeq) throw new Error(tl('launch.already'))
   const seq = ++flowSeq
   const alive = () => seq > deadSeq
   running = true
@@ -146,7 +147,7 @@ export async function launchGame(opts: LaunchOptions, emit: (c: string, d: unkno
   try {
     ensureSharedDirs(app.getPath('userData'), opts.gameDir)
   } catch (e: any) {
-    emit('launch:status', { phase: 'download', status: `Не смог расшарить кэш: ${e?.message || e}` })
+    emit('launch:status', { phase: 'download', status: tl('launch.shareCacheFail', { msg: e?.message || e }) })
   }
   // сторож: MLC висит молча при оборванном соединении — подсказываем, а не врём про прогресс
   let lastEv = Date.now()
@@ -157,7 +158,7 @@ export async function launchGame(opts: LaunchOptions, emit: (c: string, d: unkno
   const watchdog = setInterval(() => {
     if (seq === flowSeq && running && Date.now() - lastEv > 90000) {
       lastEv = Date.now()
-      emit('launch:status', { phase: 'download', status: 'Всё ещё качаю… если висит долго — проверь интернет или жми Отмена' })
+      emit('launch:status', { phase: 'download', status: tl('launch.stall') })
     }
   }, 20000)
   const done = () => {
@@ -179,13 +180,13 @@ export async function launchGame(opts: LaunchOptions, emit: (c: string, d: unkno
     try {
       await mergeInherits(opts.gameDir, opts.versionId)
     } catch (e: any) {
-      throw new Error(`Файл версии битый, переустанови загрузчик: ${e?.message || e}`)
+      throw new Error(tl('launch.badVersion', { msg: e?.message || e }))
     }
     // оборванный jar навсегда ломал бы запуск — удаляем, MLC скачает заново
     const check = verifyClientJar(opts.gameDir, opts.versionId)
-    if (!check.ok) throw new Error('Файл версии не читается, переустанови версию')
-    if (check.repaired) emit('launch:status', { phase: 'download', status: 'Нашёл битый файл, качаю заново…' })
-    emit('launch:status', { phase: 'download', status: 'Загрузка файлов игры…' })
+    if (!check.ok) throw new Error(tl('launch.jarUnreadable'))
+    if (check.repaired) emit('launch:status', { phase: 'download', status: tl('launch.badFileRedl') })
+    emit('launch:status', { phase: 'download', status: tl('launch.downloading') })
     lc.on('progress', (v: any) => ev('launch:progress', { type: v?.type, kind: v?.kind, task: v?.task, total: v?.total }))
     lc.on('download-status', (v: any) => ev('launch:progress', { type: v?.type, name: v?.name, current: v?.current, total: v?.total }))
     lc.on('debug', (e: any) => { if (e) emit('game:log', { level: 'debug', line: String(e) }) })

@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { call } from '../lib/ipc'
+import { t, useLang } from '../lib/i18n'
 import { useInstances, selectedInstance } from '../store/instancesStore'
 import { ConfirmModal } from '../components/ConfirmModal'
 
 export function Modpacks() {
+  useLang()
   const { instances, selectedId } = useInstances()
   const inst = selectedInstance(instances, selectedId)
   const [q, setQ] = useState('')
@@ -33,26 +35,26 @@ export function Modpacks() {
     setDone('')
     try {
       const r = await call<any>('modrinth:installPack', { instanceId: inst.id, projectId: id })
-      setDone(`Готово — файлов поставлено: ${r.files}`)
+      setDone(t('packs.done_files', { n: r.files }))
     } catch (e: any) {
-      setDone(`Ошибка: ${e.message}`)
+      setDone(t('packs.error', { msg: e.message }))
     } finally {
       setBusy('')
       setPending(null)
     }
   }
 
-  if (!inst) return <div className="sub">Сначала создай сборку во вкладке «Библиотека»</div>
+  if (!inst) return <div className="sub">{t('packs.no_inst')}</div>
   return (
     <div>
-      <h1 className="h-dot">Сборки</h1>
-      <p className="sub">готовые модпаки ставятся прямо в «{inst.name}» · {inst.mcVersion} · {inst.loader}</p>
+      <h1 className="h-dot">{t('packs.title')}</h1>
+      <p className="sub">{t('packs.subtitle', { name: inst.name, mc: inst.mcVersion, loader: inst.loader })}</p>
       <div className="row">
-        <input className="input" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && search()} placeholder="Название сборки…" />
-        <button className="btn" onClick={search}>Найти</button>
+        <input className="input" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && search()} placeholder={t('packs.search_ph')} />
+        <button className="btn" onClick={search}>{t('packs.search')}</button>
       </div>
       {!!plog.length && <div className="log" style={{ marginTop: 12 }}>{plog.join('\n')}</div>}
-      {done && <div className="card" style={{ marginTop: 12, borderColor: done.startsWith('Ошибка') ? 'var(--red)' : undefined }}>{done}</div>}
+      {done && <div className="card" style={{ marginTop: 12, borderColor: done.startsWith(t('packs.error_prefix')) ? 'var(--red)' : undefined }}>{done}</div>}
       <div className="grid mods" style={{ marginTop: 14 }}>
         <AnimatePresence mode="popLayout">
           {hits.map((h, i) => (
@@ -68,7 +70,7 @@ export function Modpacks() {
               </div>
               <div className="sub" style={{ minHeight: 38 }}>{h.description?.slice(0, 120)}</div>
               <button className="btn play" style={{ padding: '10px 18px', fontSize: 13 }} disabled={busy !== ''} onClick={() => setPending(h)}>
-                {busy === h.id ? 'Ставлю…' : '↓ Установить'}
+                {busy === h.id ? t('packs.installing') : t('packs.install')}
               </button>
             </motion.div>
           ))}
@@ -76,9 +78,9 @@ export function Modpacks() {
       </div>
       <ConfirmModal
         open={!!pending}
-        title="Поставить сборку?"
-        text={`«${pending?.title}» встанет в «${inst.name}». Файлы сборки будут дозаписаны поверх текущих, твои миры не тронутся.`}
-        okLabel="Поставить"
+        title={t('packs.confirm_title')}
+        text={t('packs.confirm_text', { pack: pending?.title ?? '', inst: inst.name })}
+        okLabel={t('packs.confirm_ok')}
         busy={busy !== ''}
         onOk={install}
         onCancel={() => { if (!busy) setPending(null) }}

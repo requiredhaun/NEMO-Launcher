@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { tl } from './i18n'
 
 export interface LocalMod { name: string; file: string; size: number; enabled: boolean }
 export interface ContentFile { name: string; size: number }
@@ -59,7 +60,7 @@ export function toggleMod(gameDir: string, file: string): boolean {
     fs.renameSync(path.join(dir, base), path.join(dir, base + '.disabled'))
     return false
   }
-  throw new Error('Не мод: ' + base)
+  throw new Error(tl('mods.notMod', { f: base }))
 }
 
 export function deleteMod(gameDir: string, file: string): void {
@@ -70,10 +71,10 @@ export function deleteMod(gameDir: string, file: string): void {
 export function addModFile(gameDir: string, src: string): string {
   const name = path.basename(src)
   if (!isOn(name)) {
-    throw new Error('Нужен .jar файл: ' + name)
+    throw new Error(tl('mods.needJar', { f: name }))
   }
   const buf = fs.readFileSync(src)
-  if (!buf.length) throw new Error('Пустой файл: ' + name)
+  if (!buf.length) throw new Error(tl('mods.empty', { f: name }))
   fs.mkdirSync(modsDir(gameDir), { recursive: true })
   fs.writeFileSync(path.join(modsDir(gameDir), name), buf)
   return name

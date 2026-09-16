@@ -1,10 +1,18 @@
-export const ACCENTS: Record<string, { label: string; hex: string; soft: string; on: string }> = {
-  red: { label: 'Красный', hex: '#d71920', soft: '#ff6b6f', on: '#ffffff' },
-  green: { label: 'Зелёный', hex: '#16c60c', soft: '#4ade80', on: '#ffffff' },
-  purple: { label: 'Фиолет', hex: '#a855f7', soft: '#c084fc', on: '#ffffff' },
-  blue: { label: 'Синий', hex: '#3b82f6', soft: '#60a5fa', on: '#ffffff' },
-  orange: { label: 'Оранж', hex: '#f97316', soft: '#fb923c', on: '#ffffff' },
-  white: { label: 'Белый', hex: '#e8e8e8', soft: '#ffffff', on: '#111111' },
+import { t } from './i18n'
+
+export const ACCENTS: Record<string, { hex: string; soft: string; on: string }> = {
+  red: { hex: '#d71920', soft: '#ff6b6f', on: '#ffffff' },
+  green: { hex: '#16c60c', soft: '#4ade80', on: '#ffffff' },
+  purple: { hex: '#a855f7', soft: '#c084fc', on: '#ffffff' },
+  blue: { hex: '#3b82f6', soft: '#60a5fa', on: '#ffffff' },
+  orange: { hex: '#f97316', soft: '#fb923c', on: '#ffffff' },
+  white: { hex: '#e8e8e8', soft: '#ffffff', on: '#111111' },
+}
+
+export function accentLabel(id: string): string {
+  const key = `accent.${id}`
+  const s = t(key)
+  return s === key ? id : s
 }
 
 export type ThemeMode = 'dark' | 'light'

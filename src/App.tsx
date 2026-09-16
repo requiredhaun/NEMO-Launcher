@@ -16,15 +16,16 @@ import { bindGameEvents } from './store/gameStore'
 import { useAuth } from './store/authStore'
 import { useInstances } from './store/instancesStore'
 import { call } from './lib/ipc'
+import { t, useLang, setLang } from './lib/i18n'
 import { applyTheme } from './lib/theme'
 import { PlayIcon, LibraryIcon, TagIcon, CompassIcon, BoxIcon, SlidersIcon, PlusIcon, UserIcon } from './components/icons'
 
-const NAV: { to: string; label: string; Icon: (p: { size?: number }) => JSX.Element }[] = [
-  { to: '/', label: 'Играть', Icon: PlayIcon },
-  { to: '/instances', label: 'Библиотека', Icon: LibraryIcon },
-  { to: '/versions', label: 'Версия сборки', Icon: TagIcon },
-  { to: '/mods', label: 'Моды', Icon: CompassIcon },
-  { to: '/packs', label: 'Сборки модпаков', Icon: BoxIcon },
+const NAV: { to: string; key: string; Icon: (p: { size?: number }) => JSX.Element }[] = [
+  { to: '/', key: 'nav.home', Icon: PlayIcon },
+  { to: '/instances', key: 'nav.instances', Icon: LibraryIcon },
+  { to: '/versions', key: 'nav.versions', Icon: TagIcon },
+  { to: '/mods', key: 'nav.mods', Icon: CompassIcon },
+  { to: '/packs', key: 'nav.packs', Icon: BoxIcon },
 ]
 
 function AnimatedRoutes() {
@@ -47,6 +48,7 @@ function AnimatedRoutes() {
 }
 
 function Sidebar() {
+  useLang()
   const { instances, create } = useInstances()
   const { nick } = useAuth()
   const nav = useNavigate()
@@ -61,7 +63,7 @@ function Sidebar() {
         const m = await call<any>('versions:manifest')
         if (m?.latest?.release) mc = m.latest.release
       } catch { /* fallback */ }
-      await create(`Сборка ${instances.length + 1}`, mc)
+      await create(t('app.new_build', { n: instances.length + 1 }), mc)
       nav('/instances')
     } catch {
       nav('/instances')
@@ -72,12 +74,12 @@ function Sidebar() {
 
   return (
     <aside className="rail">
-      <button className="rail-avatar" title={nick ? `${nick} — аккаунт` : 'Войти — аккаунт'} onClick={() => nav('/login')}>
+      <button className="rail-avatar" title={nick ? t('app.account_named', { nick }) : t('app.account_login')} onClick={() => nav('/login')}>
         {nick ? nick.slice(0, 1).toUpperCase() : <UserIcon size={20} />}
       </button>
       <div className="rail-group">
-        {NAV.map(({ to, label, Icon }) => (
-          <NavLink key={to} to={to} data-tip={label} className={({ isActive }) => 'rail-btn' + (isActive ? ' active' : '')}>
+        {NAV.map(({ to, key, Icon }) => (
+          <NavLink key={to} to={to} data-tip={t(key)} className={({ isActive }) => 'rail-btn' + (isActive ? ' active' : '')}>
             {({ isActive }) => (
               <>
                 <Icon size={21} />
@@ -89,12 +91,12 @@ function Sidebar() {
       </div>
       <div className="rail-bottom">
         <motion.button
-          className="rail-btn create" data-tip="Новая сборка" onClick={quickCreate} disabled={busy}
+          className="rail-btn create" data-tip={t('app.create_tip')} onClick={quickCreate} disabled={busy}
           whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.9 }}
         >
           {busy ? '…' : <PlusIcon size={21} />}
         </motion.button>
-        <NavLink to="/settings" data-tip="Настройки" className={({ isActive }) => 'rail-btn' + (isActive ? ' active' : '')}>
+        <NavLink to="/settings" data-tip={t('nav.settings')} className={({ isActive }) => 'rail-btn' + (isActive ? ' active' : '')}>
           <SlidersIcon size={21} />
         </NavLink>
         <div className="rail-ver" title={`NEMO ${__APP_VERSION__}`}>v{__APP_VERSION__}</div>
@@ -108,7 +110,10 @@ function Shell() {
   const [boot, setBoot] = useState(true)
   useEffect(() => {
     bindGameEvents()
-    call<any>('config:get').then((c) => { if (c?.theme) applyTheme(c.theme) }).catch(() => {})
+    call<any>('config:get').then((c) => {
+      if (c?.theme) applyTheme(c.theme)
+      if (c?.language === 'ru' || c?.language === 'en') setLang(c.language)
+    }).catch(() => {})
     let alive = true
     refresh().finally(() => { if (alive) setTimeout(() => alive && setBoot(false), 900) })
     return () => { alive = false }
@@ -135,7 +140,7 @@ function Shell() {
               ))}
             </div>
             <div className="pixel-divider" style={{ width: 180, margin: '14px auto' }} />
-            <GlyphLoader text="загрузка" />
+            <GlyphLoader text={t('app.loading')} />
           </div>
         </div>
       ) : (

@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
 import { ensureSharedDirs } from './versions'
+import { tl } from './i18n'
 
 export type Loader = 'vanilla' | 'fabric' | 'forge' | 'neoforge' | 'quilt'
 
@@ -66,7 +67,7 @@ export function deleteInstance(userData: string, inst: Instance): void {
   const root = path.normalize(path.join(userData, 'instances') + path.sep)
   const target = path.normalize(inst.gameDir)
   if (target !== path.normalize(path.join(userData, 'instances')) && !target.startsWith(root)) {
-    throw new Error('Отказ: gameDir вне папки инстансов')
+    throw new Error(tl('inst.outside'))
   }
   fs.rmSync(inst.gameDir, { recursive: true, force: true })
 }

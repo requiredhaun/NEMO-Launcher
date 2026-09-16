@@ -3,6 +3,7 @@ import crypto from 'node:crypto'
 import path from 'node:path'
 import { spawn } from 'node:child_process'
 import { app } from 'electron'
+import { tl } from './i18n'
 
 const MANIFEST_URL = 'https://piston-meta.mojang.com/mc/game/version_manifest_v2.json'
 const FABRIC_META = 'https://meta.fabricmc.net/v2'
@@ -20,7 +21,7 @@ export async function getManifest(force = false): Promise<ManifestInfo> {
   if (!force && manifestCache && Date.now() - manifestCache.at < 10 * 60 * 1000) return manifestCache.data
   try {
     const res = await fetch(MANIFEST_URL)
-    if (!res.ok) throw new Error(`Mojang вернул ${res.status}`)
+    if (!res.ok) throw new Error(tl('ver.mojang', { status: res.status }))
     const data = (await res.json()) as ManifestInfo
     manifestCache = { at: Date.now(), data }
     fs.mkdirSync(path.dirname(cacheFile), { recursive: true })
@@ -60,7 +61,7 @@ export async function getVanillaVersionJson(mcVersion: string, gameDir: string):
   } catch { /* download */ }
   const manifest = await getManifest()
   const entry = manifest.versions.find((v) => v.id === mcVersion)
-  if (!entry?.url) throw new Error(`Версия ${mcVersion} не найдена`)
+  if (!entry?.url) throw new Error(tl('ver.notFound', { v: mcVersion }))
   const res = await fetch(entry.url)
   if (!res.ok) throw new Error(`version.json ${mcVersion}: ${res.status}`)
   const json = await res.json()
@@ -161,14 +162,14 @@ export async function fabricLoaders(): Promise<{ version: string; stable: boolea
 /** Загрузчики Fabric именно под этот MC (для проверки поддержки). */
 export async function fabricLoadersFor(mc: string): Promise<string[]> {
   const res = await fetch(`${FABRIC_META}/versions/loader/${encodeURIComponent(mc)}`)
-  if (!res.ok) throw new Error(`Fabric нет для ${mc}`)
+  if (!res.ok) throw new Error(tl('ver.fabricNone', { mc }))
   const arr: any[] = await res.json()
   return arr.map((x) => x?.loader?.version || x?.version).filter(Boolean)
 }
 
 export async function installFabric(mc: string, loader: string, gameDir: string): Promise<{ id: string }> {
   const res = await fetch(`${FABRIC_META}/versions/loader/${encodeURIComponent(mc)}/${encodeURIComponent(loader)}/profile/json`)
-  if (!res.ok) throw new Error(`Fabric профиль ${mc}+${loader} не найден`)
+  if (!res.ok) throw new Error(tl('ver.fabricProfile', { mc, loader }))
   const profile = await res.json()
   const merged = mergeProfile(await getVanillaVersionJson(mc, gameDir), profile)
   saveVersion(gameDir, profile.id, merged)
@@ -184,7 +185,7 @@ export async function quiltLoaders(mc: string): Promise<string[]> {
 
 export async function installQuilt(mc: string, loader: string, gameDir: string): Promise<{ id: string }> {
   const res = await fetch(`${QUILT_META}/versions/loader/${encodeURIComponent(mc)}/${encodeURIComponent(loader)}/profile/json`)
-  if (!res.ok) throw new Error(`Quilt профиль ${mc}+${loader} не найден`)
+  if (!res.ok) throw new Error(tl('ver.quiltProfile', { mc, loader }))
   const profile = await res.json()
   const merged = mergeProfile(await getVanillaVersionJson(mc, gameDir), profile)
   saveVersion(gameDir, profile.id, merged)
@@ -297,7 +298,7 @@ async function downloadInstaller(url: string, name: string): Promise<string> {
   const file = path.join(dir, name)
   if (fs.existsSync(file)) return file
   const res = await fetch(url)
-  if (!res.ok) throw new Error(`Скачивание установщика: ${res.status}`)
+  if (!res.ok) throw new Error(tl('ver.installerDl', { status: res.status }))
   fs.writeFileSync(file, Buffer.from(await res.arrayBuffer()))
   return file
 }
@@ -434,10 +435,10 @@ export function runModdedInstaller(jar: string, gameDir: string, javaPath: strin
       installerProc = null
       if (code === 0) resolve()
       else if (code == null) {
-        const e: any = new Error('Установка отменена')
+        const e: any = new Error(tl('ver.installCancelled'))
         e.cancelled = true
         reject(e)
-      } else reject(new Error(`Установщик завершился с кодом ${code}. ${err.slice(-300)}`))
+      } else reject(new Error(tl('ver.installExitCode', { code, tail: err.slice(-300) })))
     })
   })
 }

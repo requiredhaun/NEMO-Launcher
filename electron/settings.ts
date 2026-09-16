@@ -5,6 +5,7 @@ import path from 'node:path'
 
 export interface ServerEntry { id: string; name: string; host: string; port: number }
 export type AuthMode = 'offline' | 'ely'
+export type Lang = 'ru' | 'en'
 
 export type Accent = 'red' | 'green' | 'purple' | 'blue' | 'orange' | 'white'
 
@@ -21,6 +22,7 @@ export interface ThemeConfig {
 export interface LauncherConfig {
   nick: string
   authMode: AuthMode
+  language: Lang
   ramMB: number
   javaPath: string
   gameDir: string
@@ -50,6 +52,7 @@ function defaults(): LauncherConfig {
   return {
     nick: '',
     authMode: 'offline',
+    language: 'ru',
     ramMB: recommendedRamMB(),
     javaPath: '',
     gameDir: defaultGameDir(),
@@ -75,6 +78,7 @@ export function getConfig(): LauncherConfig {
     const parsed = JSON.parse(raw) as Partial<LauncherConfig>
     const cfg = { ...defaults(), ...parsed, theme: { ...defaultTheme(), ...(parsed.theme || {}) } }
     if (!cfg.discordClientId?.trim()) cfg.discordClientId = defaults().discordClientId
+    if (cfg.language !== 'en' && cfg.language !== 'ru') cfg.language = 'ru'
     return cfg
   } catch {
     return defaults()

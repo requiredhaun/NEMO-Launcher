@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { call } from '../lib/ipc'
-import { ACCENTS, applyTheme, type Theme } from '../lib/theme'
+import { t, useLang, setLang, type Lang } from '../lib/i18n'
+import { ACCENTS, accentLabel, applyTheme, type Theme } from '../lib/theme'
 
 export function Settings() {
+  const lang = useLang()
   const [cfg, setCfg] = useState<any>(null)
   const [info, setInfo] = useState<any>(null)
   const [presets, setPresets] = useState<any>({})
@@ -11,6 +13,7 @@ export function Settings() {
     const c = await call<any>('config:get')
     setCfg(c)
     if (c?.theme) applyTheme(c.theme)
+    if (c?.language === 'ru' || c?.language === 'en') setLang(c.language as Lang)
     setInfo(await call('system:info'))
     setPresets(await call('config:flagPresets'))
   }
@@ -22,22 +25,41 @@ export function Settings() {
     if (c?.theme) applyTheme(c.theme)
   }
   const setTheme = (patch: Partial<Theme>) => set({ theme: { ...theme, ...patch } })
+  const setLanguage = async (l: Lang) => {
+    setLang(l)
+    await set({ language: l })
+    setPresets(await call('config:flagPresets'))
+  }
   if (!cfg) return <div className="sub">…</div>
   const theme: Theme = { mode: 'dark', accent: 'red', dots: true, glow: true, animations: true, dotFont: true, compact: false, ...(cfg.theme || {}) }
 
   return (
     <div>
-      <h1 className="h-dot">Настройки</h1>
-      <p className="sub">всего памяти: {info?.totalRamMB} МБ · советуем: {info?.recommendedRamMB} МБ</p>
+      <h1 className="h-dot">{t('settings.title')}</h1>
+      <p className="sub">{t('settings.ram_line', { total: info?.totalRamMB ?? '', rec: info?.recommendedRamMB ?? '' })}</p>
       <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))' }}>
         <div className="card">
-          <div style={{ fontFamily: 'var(--font-dot)', letterSpacing: 2 }}>ПАМЯТЬ ПО УМОЛЧАНИЮ — {cfg.ramMB} МБ</div>
-          <input type="range" min={1024} max={Math.min(16384, info?.totalRamMB || 8192)} step={256} value={cfg.ramMB}
-            onChange={(e) => set({ ramMB: Number(e.target.value) })} style={{ width: '100%', marginTop: 12, accentColor: 'var(--red)' }} />
-          {cfg.ramMB > (info?.totalRamMB || 8192) * 0.7 && <div style={{ color: '#ffb020' }}>⚠ больше 70% ОЗУ системы</div>}
+          <div style={{ fontFamily: 'var(--font-dot)', letterSpacing: 2 }}>{t('settings.lang_title')}</div>
+          <div className="sub" style={{ margin: '6px 0 0' }}>{t('settings.lang_note')}</div>
+          <div className="row" style={{ marginTop: 8 }}>
+            {([['ru', 'Русский'], ['en', 'English']] as const).map(([v, l]) => (
+              <button
+                key={v} className="btn" style={lang === v ? { borderColor: 'var(--red)', color: 'var(--accent-soft)' } : {}}
+                onClick={() => setLanguage(v)}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="card">
-          <div style={{ fontFamily: 'var(--font-dot)', letterSpacing: 2 }}>РЕЖИМ ПРОИЗВОДИТЕЛЬНОСТИ</div>
+          <div style={{ fontFamily: 'var(--font-dot)', letterSpacing: 2 }}>{t('settings.ram_default', { n: cfg.ramMB })}</div>
+          <input type="range" min={1024} max={Math.min(16384, info?.totalRamMB || 8192)} step={256} value={cfg.ramMB}
+            onChange={(e) => set({ ramMB: Number(e.target.value) })} style={{ width: '100%', marginTop: 12, accentColor: 'var(--red)' }} />
+          {cfg.ramMB > (info?.totalRamMB || 8192) * 0.7 && <div style={{ color: '#ffb020' }}>{t('settings.ram_warn')}</div>}
+        </div>
+        <div className="card">
+          <div style={{ fontFamily: 'var(--font-dot)', letterSpacing: 2 }}>{t('settings.perf_title')}</div>
           <select className="select" style={{ marginTop: 10 }} value={cfg.flagsPreset} onChange={(e) => set({ flagsPreset: e.target.value })}>
             {Object.entries(presets).map(([k, v]: any) => <option key={k} value={k}>{v.label}</option>)}
           </select>
@@ -46,59 +68,59 @@ export function Settings() {
           )}
         </div>
         <div className="card">
-          <div style={{ fontFamily: 'var(--font-dot)', letterSpacing: 2 }}>JAVA И ОКНО ИГРЫ</div>
+          <div style={{ fontFamily: 'var(--font-dot)', letterSpacing: 2 }}>{t('settings.java_title')}</div>
           <div className="row" style={{ marginTop: 10 }}>
-            <input className="input" value={cfg.javaPath} onChange={(e) => set({ javaPath: e.target.value })} placeholder="auto (рантайм Mojang)" />
-            <button className="btn ghost" onClick={() => call('java:pick').then((p: any) => p && set({ javaPath: p }))}>Обзор</button>
+            <input className="input" value={cfg.javaPath} onChange={(e) => set({ javaPath: e.target.value })} placeholder={t('settings.java_ph')} />
+            <button className="btn ghost" onClick={() => call('java:pick').then((p: any) => p && set({ javaPath: p }))}>{t('settings.browse')}</button>
           </div>
           <div className="row" style={{ marginTop: 8 }}>
             <input className="input" type="number" value={cfg.gameWidth} onChange={(e) => set({ gameWidth: Number(e.target.value) })} />
             <input className="input" type="number" value={cfg.gameHeight} onChange={(e) => set({ gameHeight: Number(e.target.value) })} />
-            <label className="row" style={{ gap: 6 }}><input type="checkbox" checked={cfg.fullscreenGame} onChange={(e) => set({ fullscreenGame: e.target.checked })} /> Во всё окно</label>
+            <label className="row" style={{ gap: 6 }}><input type="checkbox" checked={cfg.fullscreenGame} onChange={(e) => set({ fullscreenGame: e.target.checked })} /> {t('settings.fullscreen')}</label>
           </div>
           <div className="row" style={{ marginTop: 10 }}>
-            <button className="btn ghost" onClick={() => call('launch:openGameFolder', {})}>Папка игры</button>
-            <button className="btn ghost" onClick={() => call('gamedir:reset').then(load)}>Сбросить путь</button>
+            <button className="btn ghost" onClick={() => call('launch:openGameFolder', {})}>{t('settings.game_folder')}</button>
+            <button className="btn ghost" onClick={() => call('gamedir:reset').then(load)}>{t('settings.reset_path')}</button>
           </div>
         </div>
         <div className="card">
-          <div style={{ fontFamily: 'var(--font-dot)', letterSpacing: 2 }}>ДИЗАЙН ЛАУНЧЕРА</div>
-          <div className="sub" style={{ margin: '6px 0 0' }}>Тема</div>
+          <div style={{ fontFamily: 'var(--font-dot)', letterSpacing: 2 }}>{t('settings.design_title')}</div>
+          <div className="sub" style={{ margin: '6px 0 0' }}>{t('settings.theme')}</div>
           <div className="row" style={{ marginTop: 8 }}>
-            {([['dark', 'Тёмная'], ['light', 'Светлая']] as const).map(([v, l]) => (
+            {([['dark', 'settings.dark'], ['light', 'settings.light']] as const).map(([v, k]) => (
               <button
                 key={v} className="btn" style={theme.mode === v ? { borderColor: 'var(--red)', color: 'var(--accent-soft)' } : {}}
                 onClick={() => setTheme({ mode: v })}
               >
-                {l}
+                {t(k)}
               </button>
             ))}
           </div>
-          <div className="sub" style={{ margin: '6px 0 0' }}>Акцентный цвет</div>
+          <div className="sub" style={{ margin: '6px 0 0' }}>{t('settings.accent')}</div>
           <div className="swatches">
             {Object.entries(ACCENTS).map(([id, a]) => (
               <button
-                key={id} title={a.label} className={'swatch' + (theme.accent === id ? ' on' : '')}
+                key={id} title={accentLabel(id)} className={'swatch' + (theme.accent === id ? ' on' : '')}
                 style={{ background: a.hex }} onClick={() => setTheme({ accent: id })}
               />
             ))}
           </div>
-          {[
-            ['dots', 'Точки на фоне', 'dot-сетка как у Nothing'],
-            ['glow', 'Свечение', 'пульс кнопки Играть и неоновые тени'],
-            ['animations', 'Анимации', 'переходы, волны точек, скелетоны'],
-            ['dotFont', 'Dot-шрифт заголовков', 'выкл — обычный шрифт везде'],
-            ['compact', 'Компактный вид', 'меньше отступы, больше влезает'],
-          ].map(([key, label, sub]) => (
+          {([
+            ['dots', 'settings.tgl_dots', 'settings.tgl_dots_d'],
+            ['glow', 'settings.tgl_glow', 'settings.tgl_glow_d'],
+            ['animations', 'settings.tgl_anim', 'settings.tgl_anim_d'],
+            ['dotFont', 'settings.tgl_dotfont', 'settings.tgl_dotfont_d'],
+            ['compact', 'settings.tgl_compact', 'settings.tgl_compact_d'],
+          ] as const).map(([key, labelKey, subKey]) => (
             <div key={key} className="toggle-row">
               <div>
-                <div>{label}</div>
-                <div className="t-sub">{sub}</div>
+                <div>{t(labelKey)}</div>
+                <div className="t-sub">{t(subKey)}</div>
               </div>
               <button
                 className={'switch' + ((theme as any)[key] ? ' on' : '')}
                 onClick={() => setTheme({ [key]: !(theme as any)[key] } as any)}
-                title={label}
+                title={t(labelKey)}
               />
             </div>
           ))}
@@ -107,8 +129,8 @@ export function Settings() {
           <div style={{ fontFamily: 'var(--font-dot)', letterSpacing: 2 }}>DISCORD</div>
           <div className="toggle-row" style={{ marginTop: 6 }}>
             <div>
-              <div>Статус в Discord</div>
-              <div className="t-sub">что запущено — видно в профиле</div>
+              <div>{t('settings.discord_title')}</div>
+              <div className="t-sub">{t('settings.discord_sub')}</div>
             </div>
             <button
               className={'switch' + (cfg.discordRpc ? ' on' : '')}
@@ -118,8 +140,8 @@ export function Settings() {
           </div>
           {cfg.discordRpc && (
             <div className="sub" style={{ margin: '8px 0 0', lineHeight: 1.7 }}>
-              Статус идёт через встроенный ID приложения NEMO — ничего вбивать не надо.<br />
-              Чтобы вместо «?» была иконка: загрузи <b>build/icon.png</b> из папки лаунчера в App Icon своего Discord-приложения.
+              {t('settings.discord_note1')}<br />
+              {t('settings.discord_note2a')}<b>build/icon.png</b>{t('settings.discord_note2b')}
             </div>
           )}
         </div>

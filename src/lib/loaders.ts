@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { call } from './ipc'
+import { t, useLang } from './i18n'
 
 export interface LoaderOpt {
   id: string
@@ -9,18 +10,13 @@ export interface LoaderOpt {
   versions: string[]
 }
 
-const META: { id: string; label: string; hint: string }[] = [
-  { id: 'vanilla', label: 'Без модов', hint: 'чистый Minecraft' },
-  { id: 'fabric', label: 'Fabric', hint: 'лёгкий, много модов' },
-  { id: 'quilt', label: 'Quilt', hint: 'форк Fabric' },
-  { id: 'forge', label: 'Forge', hint: 'классика, ставится дольше' },
-  { id: 'neoforge', label: 'NeoForge', hint: 'современный Forge' },
-]
+const META_IDS = ['vanilla', 'fabric', 'quilt', 'forge', 'neoforge'] as const
 
 /** Какие загрузчики реально вышли под версию MC + их версии. Кэш на MC. */
 const cache = new Map<string, Record<string, { supported: boolean; versions: string[] }>>()
 
 export function useLoaderSupport(mc: string): { loaders: LoaderOpt[]; loading: boolean } {
+  useLang()
   const [data, setData] = useState<Record<string, { supported: boolean; versions: string[] }>>(() => cache.get(mc) || {})
   const [loading, setLoading] = useState(!cache.has(mc))
 
@@ -36,14 +32,15 @@ export function useLoaderSupport(mc: string): { loaders: LoaderOpt[]; loading: b
     return () => { alive = false }
   }, [mc])
 
-  const loaders: LoaderOpt[] = META.map((m) => {
-    if (m.id === 'vanilla') return { ...m, supported: true, versions: [] }
-    const s = data[m.id]
+  const loaders: LoaderOpt[] = META_IDS.map((id) => {
+    if (id === 'vanilla') return { id, label: t('loader.vanilla_label'), hint: t('loader.vanilla_hint'), supported: true, versions: [] }
+    const s = data[id]
     return {
-      ...m,
+      id,
+      label: t(`loader.${id}_label`),
+      hint: s && !s.supported ? t('loader.unsupported', { mc }) : t(`loader.${id}_hint`),
       supported: s ? s.supported : true,
       versions: s?.versions || [],
-      hint: s && !s.supported ? `не вышел для ${mc}` : m.hint,
     }
   })
   return { loaders, loading }

@@ -1,4 +1,5 @@
 import { getConfig } from './settings'
+import { tl } from './i18n'
 
 /**
  * Discord Rich Presence — опционально, полностью отказоустойчиво:
@@ -43,25 +44,29 @@ async function set(activity: Record<string, unknown>): Promise<void> {
   }
 }
 
+function idleActivity(): Record<string, unknown> {
+  return { details: tl('rpc.idleD'), state: tl('rpc.idleS'), largeImageKey: 'nemo', largeImageText: 'NEMO Launcher', instance: false }
+}
+
 /** Лаунчер открыт — «сидит в NEMO». */
 export function rpcIdle(): void {
-  void set({ details: 'Сидит в NEMO', state: 'Выбирает сборку', largeImageKey: 'nemo', largeImageText: 'NEMO Launcher', instance: false })
+  void set(idleActivity())
 }
 
 /** Пошёл запуск сборки. */
 export function rpcLaunching(name: string): void {
-  void set({ details: `Запускает «${name}»`, state: 'Загрузка файлов игры…', largeImageKey: 'nemo', largeImageText: 'NEMO Launcher', instance: false })
+  void set({ details: tl('rpc.launchD', { name }), state: tl('rpc.launchS'), largeImageKey: 'nemo', largeImageText: 'NEMO Launcher', instance: false })
 }
 
 /** Игра запущена — «Minecraft <версия> как <ник>» с таймером сессии. */
 export function rpcPlaying(versionId: string, nick: string): void {
-  void set({ details: `Minecraft ${versionId}`, state: `Играет как ${nick}`, startTimestamp: Date.now(), largeImageKey: 'nemo', largeImageText: 'NEMO Launcher', instance: false })
+  void set({ details: `Minecraft ${versionId}`, state: tl('rpc.playS', { nick }), startTimestamp: Date.now(), largeImageKey: 'nemo', largeImageText: 'NEMO Launcher', instance: false })
 }
 
 /** Игра закрыта — назад в idle; если выключено — рвём соединение. */
 export async function rpcClear(): Promise<void> {
   if (rpcEnabled()) {
-    await set({ details: 'Сидит в NEMO', state: 'Выбирает сборку', largeImageKey: 'nemo', largeImageText: 'NEMO Launcher', instance: false })
+    await set(idleActivity())
     return
   }
   const c = client

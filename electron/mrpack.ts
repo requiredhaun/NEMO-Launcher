@@ -1,6 +1,7 @@
 import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
+import { tl } from './i18n'
 
 /**
  * Безопасная распаковка .mrpack: защита от Zip-Slip + проверка sha512/sha1 из индекса.
@@ -11,7 +12,7 @@ export function safeDest(gameDir: string, rel: string): string {
   const normalized = path.normalize(path.join(gameDir, ...rel.split('/')))
   const root = path.normalize(gameDir + path.sep)
   if (normalized !== path.normalize(gameDir) && !normalized.startsWith(root)) {
-    throw new Error(`Опасный путь в сборке: ${rel}`)
+    throw new Error(tl('mrpack.unsafe', { rel }))
   }
   return normalized
 }
@@ -20,11 +21,11 @@ export function verifyHash(buf: Buffer, hashes?: { sha512?: string; sha1?: strin
   if (!hashes || (!hashes.sha512 && !hashes.sha1)) return
   if (hashes.sha512) {
     const h = crypto.createHash('sha512').update(buf).digest('hex')
-    if (h !== hashes.sha512.toLowerCase()) throw new Error('sha512 не сошёлся — файл битый или подменён')
+    if (h !== hashes.sha512.toLowerCase()) throw new Error(tl('mrpack.sha512'))
     return
   }
   const h = crypto.createHash('sha1').update(buf).digest('hex')
-  if (h !== hashes.sha1!.toLowerCase()) throw new Error('sha1 не сошёлся — файл битый или подменён')
+  if (h !== hashes.sha1!.toLowerCase()) throw new Error(tl('mrpack.sha1'))
 }
 
 export interface MrpackFile { path?: string; filename?: string; downloads?: string[]; hashes?: { sha512?: string; sha1?: string }; env?: { client?: string } }

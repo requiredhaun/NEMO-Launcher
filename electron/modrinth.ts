@@ -1,3 +1,5 @@
+import { tl } from './i18n'
+
 const API = 'https://api.modrinth.com/v2'
 
 export type ProjectKind = 'mod' | 'modpack' | 'shader' | 'resourcepack'
@@ -69,6 +71,6 @@ export function pickVersion(versions: ModVersion[], gameVersion?: string, loader
 
 export async function downloadUrl(url: string): Promise<Buffer> {
   const res = await fetch(url, { headers: { 'User-Agent': 'NemaLauncher/0.1' } })
-  if (!res.ok) throw new Error(`Скачивание: ${res.status}`)
+  if (!res.ok) throw new Error(tl('modrinth.dl', { status: res.status }))
   return Buffer.from(await res.arrayBuffer())
 }

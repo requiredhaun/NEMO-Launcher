@@ -1,7 +1,6 @@
-export const FLAG_PRESETS: Record<string, { label: string; flags: string[] }> = {
-  standard: { label: 'Стандарт', flags: [] },
+export const FLAG_PRESETS: Record<string, { flags: string[] }> = {
+  standard: { flags: [] },
   aikar: {
-    label: 'Производительность (Aikar)',
     flags: [
       '-XX:+UseG1GC', '-XX:+ParallelRefProcEnabled', '-XX:MaxGCPauseMillis=200',
       '-XX:+UnlockExperimentalVMOptions', '-XX:+DisableExplicitGC', '-XX:+AlwaysPreTouch',
@@ -13,14 +12,12 @@ export const FLAG_PRESETS: Record<string, { label: string; flags: string[] }> = 
     ],
   },
   fps: {
-    label: 'Максимум FPS',
     flags: ['-XX:+UseG1GC', '-XX:+UnlockExperimentalVMOptions', '-XX:MaxGCPauseMillis=50', '-XX:+AlwaysPreTouch', '-Dfml.earlyWindowControl=false'],
   },
   weak: {
-    label: 'Слабый ПК',
     flags: ['-XX:+UseG1GC', '-XX:MaxGCPauseMillis=200', '-XX:G1HeapRegionSize=4M', '-Dfml.earlyWindowControl=false'],
   },
-  custom: { label: 'Свои флаги', flags: [] },
+  custom: { flags: [] },
 }
 
 export function buildCustomArgs(preset: string, customFlags: string): string[] {

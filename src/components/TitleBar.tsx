@@ -1,24 +1,27 @@
 import { useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { call } from '../lib/ipc'
+import { t, useLang } from '../lib/i18n'
 import { useGame } from '../store/gameStore'
 import { useInstances, selectedInstance } from '../store/instancesStore'
 
 const CRUMBS: Record<string, string> = {
-  '/': 'Играть',
-  '/instances': 'Библиотека',
-  '/versions': 'Версия',
-  '/mods': 'Моды',
-  '/packs': 'Сборки',
-  '/login': 'Аккаунт',
-  '/settings': 'Настройки',
+  '/': 'nav.home',
+  '/instances': 'nav.instances',
+  '/versions': 'nav.versions',
+  '/mods': 'nav.mods',
+  '/packs': 'nav.packs',
+  '/login': 'crumb.login',
+  '/settings': 'nav.settings',
 }
 
 function Crumbs() {
+  useLang()
   const loc = useLocation()
   const { instances, selectedId } = useInstances()
   const inst = selectedInstance(instances, selectedId)
-  const page = CRUMBS[loc.pathname] || ''
+  const key = CRUMBS[loc.pathname]
+  const page = key ? t(key) : ''
   const showInst = inst && ['/versions', '/mods', '/packs'].includes(loc.pathname)
   return (
     <div className="crumbs">
@@ -36,6 +39,7 @@ function Crumbs() {
 }
 
 function RunningPill() {
+  useLang()
   const { launching, playing, progress, status } = useGame()
   const { instances, selectedId } = useInstances()
   const inst = selectedInstance(instances, selectedId)
@@ -48,7 +52,7 @@ function RunningPill() {
         title={status}
       >
         <span className="run-dot" />
-        {playing ? `В игре${inst ? `: ${inst.name}` : ''}` : `${Math.round(progress * 100)}% · запуск`}
+        {playing ? (inst ? t('titlebar.ingame_named', { name: inst.name }) : t('titlebar.ingame')) : t('titlebar.launching', { pct: Math.round(progress * 100) })}
       </motion.div>
     </AnimatePresence>
   )
