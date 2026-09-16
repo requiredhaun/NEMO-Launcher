@@ -74,9 +74,9 @@ export function Settings() {
             <button className="btn ghost" onClick={() => call('java:pick').then((p: any) => p && set({ javaPath: p }))}>{t('settings.browse')}</button>
           </div>
           <div className="row" style={{ marginTop: 8 }}>
-            <input className="input" type="number" value={cfg.gameWidth} onChange={(e) => set({ gameWidth: Number(e.target.value) })} />
-            <input className="input" type="number" value={cfg.gameHeight} onChange={(e) => set({ gameHeight: Number(e.target.value) })} />
-            <label className="row" style={{ gap: 6 }}><input type="checkbox" checked={cfg.fullscreenGame} onChange={(e) => set({ fullscreenGame: e.target.checked })} /> {t('settings.fullscreen')}</label>
+            <input className="input" type="number" style={{ maxWidth: 110 }} value={cfg.gameWidth} onChange={(e) => set({ gameWidth: Number(e.target.value) })} />
+            <input className="input" type="number" style={{ maxWidth: 110 }} value={cfg.gameHeight} onChange={(e) => set({ gameHeight: Number(e.target.value) })} />
+            <label className="row" style={{ gap: 6, whiteSpace: 'nowrap' }}><input type="checkbox" checked={cfg.fullscreenGame} onChange={(e) => set({ fullscreenGame: e.target.checked })} /> {t('settings.fullscreen')}</label>
           </div>
           <div className="row" style={{ marginTop: 10 }}>
             <button className="btn ghost" onClick={() => call('launch:openGameFolder', {})}>{t('settings.game_folder')}</button>
