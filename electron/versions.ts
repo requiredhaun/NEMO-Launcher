@@ -281,8 +281,9 @@ export async function loaderSupport(mc: string): Promise<LoaderSupport> {
   if (quilt.status === 'fulfilled' && quilt.value.length) {
     out.quilt = { supported: true, versions: quilt.value.slice(0, 10) }
   }
-  if (promos.status === 'fulfilled' && promos.value[mc]) {
-    out.forge = { supported: true, versions: [promos.value[mc]] }
+  if (promos.status === 'fulfilled') {
+    const v = promos.value[mc]
+    if (v) out.forge = { supported: true, versions: [forgeFull(mc, v)] }
   }
   if (neo.status === 'fulfilled' && neo.value.length) {
     out.neoforge = { supported: true, versions: neo.value }

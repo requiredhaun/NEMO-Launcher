@@ -30,7 +30,12 @@ export function Instances() {
 
   useEffect(() => {
     refresh()
-    call<any>('versions:manifest').then((m) => setManifest(m.versions.filter((v: any) => v.type === 'release').slice(0, 30))).catch(() => {})
+    call<any>('versions:manifest')
+      .then((m) => {
+        setManifest(m.versions.filter((v: any) => v.type === 'release').slice(0, 30))
+        if (m?.latest?.release) setMc(m.latest.release)
+      })
+      .catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

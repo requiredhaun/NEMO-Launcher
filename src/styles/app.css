@@ -32,7 +32,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* dot-фон рисует canvas (DotBackground), css-сетка ниже — запасной вариант */
+/* dot-фон рисует canvas (DotBackground) */
 .dot-bg { display: none; }
 
 .app { position: relative; z-index: 1; height: 100vh; display: flex; flex-direction: column; }
@@ -111,7 +111,6 @@ body {
 }
 .rail-avatar { position: relative; }
 .rail-ver { font-size: 10px; color: #555; font-family: var(--font-dot); }
-.nav-item .dot { width: 7px; height: 7px; border-radius: 50%; background: #333; transition: .2s; }
 .nav-item.active .dot { background: var(--red); box-shadow: 0 0 10px var(--red); animation: blink 1.6s infinite; }
 @keyframes blink { 50% { opacity: .35; } }
 
@@ -123,7 +122,6 @@ body {
   border-top-left-radius: 16px;
 }
 .main::-webkit-scrollbar { width: 10px; }
-.main::-webkit-scrollbar-thumb { background: #222; border-radius: 8px; }
 
 .h-dot { font-family: var(--font-dot); letter-spacing: 4px; font-size: 26px; margin: 0; }
 .sub { color: var(--dim); margin: 6px 0 20px; }
@@ -175,7 +173,7 @@ a.card:hover { transform: translateY(-3px); border-color: #3d3d3d; box-shadow: 0
 
 .progress { height: 8px; background: #161616; border-radius: 99px; overflow: hidden; border: 1px solid var(--line); }
 .progress > div {
-  height: 100%; background: repeating-linear-gradient(90deg, var(--red) 0 8px, #ff5b60 8px 10px);
+  height: 100%; background: repeating-linear-gradient(90deg, var(--red) 0 8px, var(--accent-soft) 8px 10px);
   transition: width .3s; animation: slide-dots 1s linear infinite;
 }
 @keyframes slide-dots { to { filter: brightness(1.25); } }

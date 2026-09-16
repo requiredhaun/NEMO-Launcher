@@ -49,7 +49,7 @@ export function Settings() {
           <div style={{ fontFamily: 'var(--font-dot)', letterSpacing: 2 }}>JAVA И ОКНО ИГРЫ</div>
           <div className="row" style={{ marginTop: 10 }}>
             <input className="input" value={cfg.javaPath} onChange={(e) => set({ javaPath: e.target.value })} placeholder="auto (рантайм Mojang)" />
-            <button className="btn ghost" onClick={() => call('java:pick').then((p: any) => p && set({ javaPath: p }))}>…</button>
+            <button className="btn ghost" onClick={() => call('java:pick').then((p: any) => p && set({ javaPath: p }))}>Обзор</button>
           </div>
           <div className="row" style={{ marginTop: 8 }}>
             <input className="input" type="number" value={cfg.gameWidth} onChange={(e) => set({ gameWidth: Number(e.target.value) })} />
