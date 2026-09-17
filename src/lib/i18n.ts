@@ -316,6 +316,9 @@ export const STR: Record<Lang, Record<string, string>> = {
 
     'update.available': 'Доступна NEMO {tag}',
     'update.install': 'Скачать и установить',
+    'update.install_now': 'Установить и перезапустить',
+    'update.retry': 'Повторить',
+    'update.ready': 'Обновление скачано — жми установить, старая версия заменится сама',
     'update.skip': 'Пропустить версию',
     'update.later': 'Позже',
     'update.downloading': 'Качаю обновление… {pct}%',
@@ -606,6 +609,9 @@ export const STR: Record<Lang, Record<string, string>> = {
 
     'update.available': 'NEMO {tag} available',
     'update.install': 'Download & install',
+    'update.install_now': 'Install & restart',
+    'update.retry': 'Retry',
+    'update.ready': 'Update downloaded — hit install, the old version replaces itself',
     'update.skip': 'Skip version',
     'update.later': 'Later',
     'update.downloading': 'Downloading update… {pct}%',

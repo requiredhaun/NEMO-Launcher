@@ -61,7 +61,7 @@ export function openReleasesPage(url: string): void {
   shell.openExternal(url)
 }
 
-/** Качает установщик в кэш с прогрессом. Возвращает путь к файлу. */
+/** Качает установщик в кэш с прогрессом. Старые кешированные сетапы трёт. Возвращает путь к файлу. */
 export async function downloadUpdate(url: string, onProgress?: (done: number, total: number) => void): Promise<string> {
   if (!url) throw new Error(tl('upd.noAsset'))
   const res = await fetch(url, { headers: { 'User-Agent': 'NEMO-Launcher' } })
@@ -69,6 +69,11 @@ export async function downloadUpdate(url: string, onProgress?: (done: number, to
   const total = Number(res.headers.get('content-length')) || 0
   const dir = path.join(app.getPath('userData'), 'cache', 'updates')
   fs.mkdirSync(dir, { recursive: true })
+  try {
+    for (const f of fs.readdirSync(dir)) {
+      if (f.toLowerCase().endsWith('.exe')) fs.rmSync(path.join(dir, f), { force: true })
+    }
+  } catch { /* ignore */ }
   const file = path.join(dir, `NEMO-Setup-${Date.now()}.exe`)
   const out = fs.createWriteStream(file)
   let done = 0

@@ -109,28 +109,37 @@ function Sidebar() {
 
 function UpdateBanner({ info, onDone }: { info: any; onDone: () => void }) {
   useLang()
-  const [phase, setPhase] = useState<'idle' | 'downloading' | 'failed'>('idle')
+  const [phase, setPhase] = useState<'downloading' | 'ready' | 'failed' | 'link'>('downloading')
   const [pct, setPct] = useState(0)
   const [err, setErr] = useState('')
+  const [file, setFile] = useState('')
 
   useEffect(() => window.nema.on('update:progress', (d: any) => {
     if (d?.total) setPct(Math.max(0, Math.min(100, Math.round((d.done / d.total) * 100))))
   }), [])
 
-  const install = async () => {
-    if (!info.setupUrl) {
-      try { await call('update:openPage', { url: info.pageUrl }) } catch { /* ignore */ }
-      onDone()
-      return
-    }
+  const startDownload = () => {
+    if (!info.setupUrl) { setPhase('link'); return }
     setPhase('downloading'); setPct(0); setErr('')
+    call<any>('update:download').then((r) => {
+      setFile(r.file); setPct(100); setPhase('ready')
+    }).catch((e: any) => {
+      setPhase('failed'); setErr(e?.message || 'IPC error')
+    })
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(startDownload, [])
+
+  const installNow = async () => {
     try {
-      const r = await call<any>('update:download')
-      setPct(100)
-      await call('update:install', { file: r.file })
+      await call('update:install', { file })
     } catch (e: any) {
       setPhase('failed'); setErr(e?.message || 'IPC error')
     }
+  }
+  const openPage = async () => {
+    try { await call('update:openPage', { url: info.pageUrl }) } catch { /* ignore */ }
+    onDone()
   }
   const skip = async () => {
     try { await call('update:skip', { tag: info.latest }) } catch { /* ignore */ }
@@ -143,14 +152,17 @@ function UpdateBanner({ info, onDone }: { info: any; onDone: () => void }) {
         <div style={{ minWidth: 220, flex: 1 }}>
           <div style={{ fontFamily: 'var(--font-dot)', letterSpacing: 2 }}>{t('update.available', { tag: info.latest })}</div>
           {!!info.notes && <div className="sub" style={{ marginTop: 4, whiteSpace: 'pre-wrap' }}>{String(info.notes).slice(0, 400)}</div>}
-          {phase === 'downloading' && <div className="progress" style={{ marginTop: 8 }}><div style={{ width: `${pct}%` }} /></div>}
+          {(phase === 'downloading' || phase === 'ready') && <div className="progress" style={{ marginTop: 8 }}><div style={{ width: `${phase === 'ready' ? 100 : pct}%` }} /></div>}
           {phase === 'downloading' && <div className="sub" style={{ marginTop: 4 }}>{t('update.downloading', { pct })}</div>}
+          {phase === 'ready' && <div className="sub" style={{ marginTop: 4 }}>{t('update.ready')}</div>}
           {phase === 'failed' && <div style={{ color: '#ff5b5b', marginTop: 4 }}>{t('update.failed', { msg: err })}</div>}
         </div>
         <div className="row" style={{ gap: 8, alignItems: 'center' }}>
-          {phase !== 'downloading' && <button className="btn" onClick={install}>{info.setupUrl ? t('update.install') : t('update.open_page')}</button>}
-          {phase === 'idle' && <button className="btn ghost" onClick={skip}>{t('update.skip')}</button>}
-          {phase !== 'downloading' && <button className="btn ghost" onClick={onDone}>{t('update.later')}</button>}
+          {phase === 'downloading' && <button className="btn ghost" onClick={skip}>{t('update.skip')}</button>}
+          {phase === 'ready' && <button className="btn" onClick={installNow}>{t('update.install_now')}</button>}
+          {phase === 'failed' && <button className="btn" onClick={startDownload}>{t('update.retry')}</button>}
+          {phase === 'link' && <button className="btn" onClick={openPage}>{t('update.open_page')}</button>}
+          {phase !== 'ready' && <button className="btn ghost" onClick={onDone}>{t('update.later')}</button>}
         </div>
       </div>
     </div>
